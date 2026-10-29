@@ -1,0 +1,18 @@
+[
+  { "category": "spelling", "input": "I recieved your message yesterday.", "reference": "I received your message yesterday." },
+  { "category": "repeated word", "input": "We should discuss the the next step.", "reference": "We should discuss the next step." },
+  { "category": "agreement", "input": "She don't know the answer.", "reference": "She doesn't know the answer." },
+  { "category": "agreement", "input": "He go to work every day.", "reference": "He goes to work every day." },
+  { "category": "past tense", "input": "Yesterday I go to the shop and buy some milk.", "reference": "Yesterday I went to the shop and bought some milk." },
+  { "category": "duration and tense", "input": "I am living here since five years.", "reference": "I have been living here for five years." },
+  { "category": "verb construction", "input": "Can you explain me how this works?", "reference": "Can you explain to me how this works?" },
+  { "category": "verb construction", "input": "I look forward to hear from you.", "reference": "I look forward to hearing from you." },
+  { "category": "sentence structure", "input": "Although it was raining, but we went outside.", "reference": "Although it was raining, we went outside." },
+  { "category": "word order", "input": "I very like this extension.", "reference": "I really like this extension." },
+  { "category": "word order", "input": "I don't know what should I do.", "reference": "I don't know what I should do." },
+  { "category": "tense and time", "input": "I have finished my work yesterday.", "reference": "I finished my work yesterday." },
+  { "category": "verb construction", "input": "I am agree with you.", "reference": "I agree with you." },
+  { "category": "user example", "input": "I feel like it just suggest to correct one word, but the whole sentence is wrong.", "reference": "I feel like it only suggests corrections to individual words, even when the whole sentence is wrong." },
+  { "category": "correct control", "input": "I received your message yesterday.", "reference": "I received your message yesterday." },
+  { "category": "correct control", "input": "I don't know what I should do.", "reference": "I don't know what I should do." }
+]

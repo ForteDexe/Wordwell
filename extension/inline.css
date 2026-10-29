@@ -1,0 +1,36 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Card surfaces and typography adapted from Harper's SuggestionBox.ts.
+ * See THIRD_PARTY_NOTICES.txt and licenses/harper-LICENSE.txt.
+ */
+:host { all: initial; position: fixed; inset: 0; z-index: 2147483647; pointer-events: none; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+button { font-family: inherit; cursor: pointer; }
+.trigger, .panel { position: fixed; pointer-events: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; line-height: 20px; text-align: left; color: #1f2328; }
+.trigger { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; background: #fff; border: 1px solid #d0d7de; border-radius: 7px; box-shadow: 0 2px 6px rgba(140,149,159,.3); color: #18594e; font: 600 16px Georgia, serif; }
+.trigger:hover { background: #f0f7f3; border-color: #73a68d; }
+.trigger:focus-visible, button:focus-visible { outline: 2px solid #409076; outline-offset: 2px; }
+.panel { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; box-shadow: 0 4px 12px rgba(140,149,159,.3); width: min(350px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain; }
+.heading { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 2px solid #3f8b72; font-size: 12px; font-weight: 600; }
+.swatch { width: 3px; height: 16px; border-radius: 2px; background: #3f8b72; }
+.close { margin-left: auto; border: 0; background: transparent; color: #57606a; font-size: 19px; line-height: 20px; padding: 0 3px; }
+.body { padding: 10px; overflow-wrap: anywhere; }
+.label { color: #57606a; font-size: 11px; font-weight: 600; margin: 0 0 3px; }
+.text { margin: 0 0 11px; white-space: pre-wrap; max-height: 150px; overflow-y: auto; user-select: text; }
+.original { color: #57606a; }
+.correction { color: #1f5b43; background: #eff8f1; border-radius: 5px; padding: 7px 8px; }
+.diff-added { color: #124b32; background: #bce9c9; border-radius: 2px; text-decoration: underline; text-decoration-color: #409076; text-underline-offset: 2px; }
+.removed { margin: -4px 0 11px; font-size: 11px; line-height: 18px; color: #57606a; white-space: pre-wrap; }
+.removed del { color: #912f32; background: #ffebe9; border-radius: 2px; }
+.message { margin: 0; color: #57606a; white-space: pre-wrap; }
+.replace-error { color: #912f32; margin-top: 8px; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 10px; }
+.action { display: inline-flex; align-items: center; justify-content: center; min-height: 26px; border: 0; border-radius: 6px; padding: 4px 9px; font-size: 12px; font-weight: 600; line-height: 18px; background: #18594e; color: white; }
+.action:hover { filter: brightness(.95); }
+.action:disabled { opacity: .5; cursor: default; }
+.secondary { background: #e5e5e5; color: #1f2328; font-weight: 400; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #eaeef2; padding: 6px 10px; font-size: 11px; color: #6e7781; }
+.footer button { border: 0; background: transparent; padding: 0; color: #57606a; font-size: 11px; }
+.spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid #d8e6de; border-top-color: #3f8b72; border-radius: 50%; margin-right: 7px; vertical-align: -2px; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

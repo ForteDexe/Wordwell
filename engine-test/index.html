@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/styles.css">
+<title>Local English model · Engine test</title>
+<main>
+  <h1>Local English model</h1>
+  <p>Standalone browser inference · 1,024-token context · models served from your computer</p>
+  <section>
+    <label for="model">Model</label><select id="model"></select>
+    <label for="backend">Backend</label><select id="backend"><option value="auto">WebGPU when available</option><option value="cpu">CPU / WebAssembly</option><option value="gpu">Require WebGPU</option></select>
+    <div class="actions"><button id="load">Load model</button><button id="unload" disabled>Unload</button></div>
+    <p id="status" role="status">Preparing test…</p>
+  </section>
+  <section>
+    <label for="text">Sentence to check</label>
+    <textarea id="text" rows="3">Yesterday I go to the shop and buy some milk.</textarea>
+    <div class="actions"><button id="correct" disabled>Correct sentence</button><button id="suite" disabled>Run grammar test set</button><button id="export" disabled>Save results</button></div>
+    <pre id="output" aria-live="polite"></pre>
+  </section>
+  <section><h2>Grammar test results</h2><p>Suggested references are examples of good English. Exact wording is not the only valid answer.</p><div id="results"></div></section>
+  <details><summary>Engine information and log</summary><pre id="info"></pre><pre id="log"></pre></details>
+</main>
+<script type="module" src="/engine.mjs"></script>
+</html>

@@ -1,0 +1,139 @@
+# Local English
+
+Chrome extension for reviewing sentence corrections with a local GGUF model, including an inline selection icon and a Harper-style suggestion card. The standalone engine test remains available below.
+
+## Install the extension
+
+From the repository root, with the Conda environment activated:
+
+```powershell
+conda activate .\.conda
+npm ci
+npm run build:extension
+```
+
+1. Open `chrome://extensions` and enable **Developer mode**.
+2. Click **Load unpacked** and select this repository's **`dist/extension`** folder.
+3. Pin **Local English**, then click its toolbar icon to open the workspace.
+4. Choose `D:\LLM_Models\Qwen3.5-0.8B\Qwen3.5-0.8B-UD-Q6_K_XL.gguf` and click **Load model**.
+5. Select text in the workspace's **Original** box, or return to a webpage and select text inside a text box. Click the small **Aa** icon near the selection start. The inline card shows **Checking…**, then the original and suggested correction. Added or changed words are highlighted in green; removed words appear struck through underneath. Click **Replace** to update the selected text. **Ctrl+Z** undoes the replacement.
+
+Selection alone only shows the icon; inference starts on click. The inline card reuses the model already loaded in the workspace tab and does not navigate away from your writing. Editing the source dismisses the card and invalidates any pending result. Escape or clicking outside closes the card. Replace updates only the original selection and refuses to overwrite a source that has changed. It respects character limits and an editor's cancellation of the edit. If no changes are suggested, Replace is disabled.
+
+Ordinary writable textareas, supported single-line text inputs, and basic contenteditable fields work on HTTP/HTTPS pages. The workspace explicitly loads the same inline script so its **Original** box is also a test surface; its read-only **Suggested correction** box is excluded. Password, disabled, and read-only fields are excluded. Advanced editors such as Google Docs and complex shadow-DOM editors have not been integrated. The icon and card use a shadow root to isolate their style from the website.
+
+You can also paste text in the workspace, or select webpage text, right-click, and choose **Check with Local English** to send it there. The workspace's standalone check retains **Copy correction** for this manual paste/check flow; use the inline icon in its Original box for Replace. Each check is manual; the extension does not automatically edit pages or scan all your writing. The content-script declaration gives it access to HTTP/HTTPS pages so it can display the selection UI. Only the selected passage is sent to the local model when you click the icon.
+
+After you load a model successfully, the extension remembers one local copy. It autoloads when the workspace is reopened or refreshed. When Chrome starts, the extension opens a background workspace tab and loads the saved model without another file-picker prompt. Keep that tab open to reuse the loaded model. Clicking the toolbar icon or sending another selection focuses the existing workspace rather than reloading it. The loaded tab is marked non-discardable to reduce automatic unloading.
+
+**Unload** releases the current engine but retains the saved copy for the next workspace/browser startup. **Forget model** removes the saved copy and disables autoload; an already-loaded engine stays available until you unload or close it. To replace the remembered model, unload, choose another GGUF, and load it.
+
+The toolbar icon shows **...** while loading and a red **!** if loading, restoring, or checking fails. Hover over the icon for the reason, or click it to open the workspace error. A successful load/check clears the error badge.
+
+The extension needs no Node server, llama.cpp server, cloud endpoint, model download, or CDN at runtime. The remembered model is stored as a File in the extension's IndexedDB, using about the model's file size in local profile storage (771 MB for the tested quant). Only one selected-model record is retained. The extension requests `unlimitedStorage` to keep this large cache from quota restrictions/automatic eviction. All JavaScript, worker files, and WebAssembly are bundled in the extension. The original GGUF is not modified.
+
+Context is **1,024 tokens**, with a 128-token output cap and thinking disabled. This first version accepts one GGUF file under 2 GB, intended for short passages. Only the supplied Qwen3.5-0.8B UD-Q6_K_XL has been verified so far. Other architectures or quants need their own compatibility check.
+
+The model can miss mistakes or suggest unwanted edits. In particular, **No changes suggested** is not a guarantee of correct English. Original text remains unchanged until you choose **Replace** or manually paste a correction.
+
+### Verify and rebuild
+
+```powershell
+npm run build:extension
+npm run test:diff
+npm run test:extension
+```
+
+The automated browser test uses a separate Chrome for Testing profile and your real model file. It checks file validation, the loaded context, full-sentence correction, model reuse, selected-text routing, workspace copy, long-input rejection, and unload. It also verifies the inline icon/popup under a strict website CSP, changed/removed highlights, Replace in textareas/inputs/basic rich text, native input events, Ctrl+Z, partial selections, preservation of surrounding formatting, unchanged suggestions, editor cancellation, excluded fields, stale-result suppression, and viewport/scroll positioning. The diff tests cover punctuation, repeated words, whitespace, Unicode, and literal markup text. The persistence checks reload the workspace, fully close/reopen the browser profile, verify automatic restoration and real inference, simulate a missing cached model, and verify the error badge and Forget recovery. The only HTTP requests allowed during the browser test are to its own local website fixture. It exercises the shared context-menu selection handler; the native Chrome right-click menu itself is for manual testing. Results and screenshots are saved under `artifacts/extension-test.json`, `artifacts/extension-workspace.png`, `artifacts/inline-suggestion.png`, and `artifacts/remembered-model.png`.
+
+Sources are in `extension/`; generated files are in `dist/extension/`. The build adapts wllama 3.8.1's generated Blob workers to packaged workers required by Chrome's MV3 content security policy. This adapter is version-guarded in `scripts/package-workers.mjs`; review it before upgrading wllama. Third-party licensing is included under the generated `vendor/` folder.
+
+If the test browser has not been installed yet:
+
+```powershell
+npx playwright install chromium
+```
+
+After rebuilding, reload Local English in `chrome://extensions`, accept any requested permissions, and refresh its workspace tab and the webpages where you want the selection icon. On the first update to the remembered-model version, choose/load your model once to create the saved copy. Subsequent workspace/browser starts autoload it.
+
+The inline card's surfaces and typography adapt Harper's `SuggestionBox.ts` (Apache-2.0). Attribution and the license are included in the extension. This is the first UI integration; Harper's original rule engine and automatic underlines have not been added.
+
+Chrome on Windows currently ignores the WebGPU `powerPreference` hint. The app omits that hint on Windows to avoid the resulting console warning; WebGPU remains enabled and Chrome chooses its adapter. This does not force NVIDIA/CUDA or switch inference to CPU.
+
+## Standalone engine test
+
+A standalone browser test for the engine that may later power the Harper-based extension. It currently runs inference in Chrome through wllama 3.8.1; this is not yet an extension.
+
+## Run on Windows
+
+From the repository root:
+
+```powershell
+conda activate .\.conda
+npm ci
+.\start-engine-test.ps1
+```
+
+Open **http://127.0.0.1:8766**, click **Load model**, then correct a sentence or run the grammar set. Keep the PowerShell server running; Ctrl+C stops it. **Unload** releases the model from the browser.
+
+The default model is your existing file:
+
+```text
+D:\LLM_Models\Qwen3.5-0.8B\Qwen3.5-0.8B-UD-Q6_K_XL.gguf
+```
+
+The server reads the model without modifying or copying the source file. It serves static assets and model bytes only; inference happens in the browser. Model weights and inference assets are local, with no CDN or cloud inference endpoint. The model is not persistently cached by the app. A model load fetches it again from your disk.
+
+Context is explicitly **1,024 tokens**, shared between the instructions, input, and output. Output is capped at 128 tokens, thinking is disabled, and sampling uses temperature 0 with seed 42. Use short sentences or paragraphs for this test.
+
+Optional server configuration:
+
+```powershell
+$env:MODEL_DIR = 'D:\LLM_Models\Qwen3.5-0.8B'
+$env:PORT = '8766'
+npm start
+```
+
+Only the engine-test assets, wllama assets, and GGUF files from the configured model folder are served. The server binds to 127.0.0.1 and sends the isolation headers required for multithreaded WASM. It does not serve `.conda` or `.ref`.
+
+## Automated browser check
+
+With the Conda environment activated:
+
+```powershell
+npm run test:engine
+```
+
+This launches the installed Google Chrome in a separate headless session, starts a temporary local file server, loads the model, verifies the actual loaded context, and runs the 16-case grammar set. External HTTP requests are blocked and recorded as test failures. Output and engine details are saved under `artifacts/engine-auto.json`, with a screenshot alongside it. The test closes its browser and temporary server when finished.
+
+Optional variations:
+
+```powershell
+$env:BACKEND = 'cpu' # auto (default), cpu, or gpu
+$env:MODEL_FILE = 'Qwen3.5-0.8B-BF16.gguf'
+$env:REPORT_NAME = 'bf16-cpu'
+npm run test:engine
+```
+
+The initial verified run used `auto` with UD-Q6_K_XL. The other combinations must be tested separately; sharing the GGUF format is not proof of support for every architecture or quant.
+
+The automated PASS means the engine loaded at 1,024 tokens, all generations finished, and there were no page errors or external requests. It does **not** mean all English corrections were right. Reference sentences are examples; different wording may also be valid.
+
+## Initial result, 2026-10-29
+
+- Model: Qwen3.5-0.8B UD-Q6_K_XL, 771,092,736 bytes.
+- Engine: wllama 3.8.1, Chrome 156, WebGPU; reported adapter Intel Gen-12LP.
+- Actual context: 1,024 tokens; multithread enabled with eight threads requested.
+- Load including reading the local model: 6.28 seconds.
+- Median correction time: 1.79 seconds; range 1.61–2.91 seconds.
+- All 16 generations completed normally; no page errors or external HTTP requests.
+- Manual assessment of the 14 incorrect sentences: 10 corrected, one partially corrected, three unchanged despite errors. Both already-correct controls stayed unchanged.
+
+Examples of remaining errors:
+
+- `I am living here since five years.` became `I have been living here since five years.` The tense improved, but `since` should be `for`.
+- `Can you explain me how this works?` remained unchanged; it needs `explain to me`.
+- `I have finished my work yesterday.` remained unchanged; the reference uses `I finished`.
+- `I am agree with you.` remained unchanged; it needs `I agree`.
+
+This is a small handpicked smoke test, not a general accuracy benchmark. The original Harper checkout and earlier tests are archived under `.ref`; `.conda` remains at the root.

@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Local English",
+  "version": "0.4.0",
+  "description": "Review sentence corrections with a GGUF model running locally in Chrome.",
+  "minimum_chrome_version": "137",
+  "permissions": ["contextMenus", "storage", "clipboardWrite", "unlimitedStorage"],
+  "action": { "default_title": "Open Local English" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["inline.js"],
+    "run_at": "document_idle",
+    "all_frames": true
+  }],
+  "cross_origin_embedder_policy": { "value": "require-corp" },
+  "cross_origin_opener_policy": { "value": "same-origin" },
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none';"
+  }
+}
