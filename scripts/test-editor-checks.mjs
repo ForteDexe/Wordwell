@@ -35,7 +35,7 @@ try {
   await page.goto(`chrome-extension://${extensionId}/workspace.html`);
   await page.waitForFunction(() => window.localEnglish?.initialized);
   await page.locator('#auto-check').uncheck();
-  await page.setInputFiles('#model-file', process.env.MODEL_FILE_PATH || 'D:/LLM_Models/Qwen3.5-0.8B/Qwen3.5-0.8B-UD-Q6_K_XL.gguf');
+  await page.setInputFiles('#model-file', process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf'));
   await page.click('#load');
   await page.waitForFunction(() => window.localEnglish.model.ready || !document.getElementById('error').hidden, undefined, { timeout: 180000 });
   assert.equal(await page.evaluate(() => window.localEnglish.model.ready), true);

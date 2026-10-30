@@ -32,7 +32,7 @@ The extension's model, correction instruction, cache policy, threads, and batch 
    .\start-fast-chrome.ps1
    ```
 
-3. Open Local English. Under **Engine details**, verify `adapter.vendor` is `nvidia`, then check the same sentences you checked before.
+3. Open Wordwell. Under **Engine details**, verify `adapter.vendor` is `nvidia`, then check the same sentences you checked before.
 
 The launcher uses the existing Google Chrome installation and normal profile, including the extension and remembered model. It refuses to start while a Chrome process exists. It does not terminate Chrome, change Windows/Chrome settings, edit shortcuts, or promise a specific GPU on other machines. Fully exit Chrome and reopen it normally to restore default GPU selection. Use `-ShowCommand` to inspect the command without launching anything.
 

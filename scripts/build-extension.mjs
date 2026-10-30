@@ -6,11 +6,15 @@ import { diffText } from '../extension/text-diff.js';
 import { createWritingTools } from '../extension/writing-tools.js';
 import { createAutoChecker } from '../extension/auto-check.js';
 import { createLanguageTools } from '../extension/languages.js';
+import { resetOutputDirectory } from './build-paths.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const output = path.join(root, 'dist/extension');
-await mkdir(output, { recursive: true });
+const output = await resetOutputDirectory('extension');
 await cp(path.join(root, 'extension'), output, { recursive: true });
+await cp(path.join(root, 'docs/privacy.html'), path.join(output, 'privacy.html'));
+await cp(path.join(root, 'docs/privacy.css'), path.join(output, 'privacy.css'));
+await cp(path.join(root, 'LICENSE'), path.join(output, 'LICENSE'));
+await cp(path.join(root, 'NOTICE'), path.join(output, 'NOTICE'));
 const inlineSource = await readFile(path.join(root, 'extension/inline.js'), 'utf8');
 if (inlineSource.split("'__INLINE_CSS__'").length !== 2) throw new Error('Missing inline stylesheet placeholder');
 if (inlineSource.split("'__INLINE_DIFF__'").length !== 2) throw new Error('Missing inline diff placeholder');

@@ -22,6 +22,7 @@
     <div class="model-title"><h2 id="model-heading">Your model</h2><span id="model-state" class="state">Not loaded</span></div>
     <div class="model-controls"><label class="file-label">Choose a GGUF file<input id="model-file" type="file" accept=".gguf"></label><button id="load" disabled>Load model</button><button id="unload" class="secondary" disabled>Unload</button><button id="forget" class="secondary" disabled>Forget model</button></div>
     <p id="model-file-name" class="muted">Select your Qwen model to begin. The file stays on your computer.</p>
+    <p id="setup-privacy" class="small muted">Wordwell processes your writing on this device. Loading a model enables local checks and saves a copy for autoload. <a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>
   </section>
   <section class="settings-card" aria-labelledby="settings-heading">
     <h2 id="settings-heading">Settings</h2>
@@ -95,6 +96,7 @@
     <p id="error" role="alert" hidden></p>
   </section>
   <footer><details><summary>Engine details</summary><pre id="diagnostics">No model loaded.</pre></details><details id="editor-diagnostics-panel"><summary>Website editor diagnostics</summary><p>Right-click inside a failing text box and choose “Wordwell: Diagnose this editor”. Reports contain editor structure and status, without your comment text.</p><button id="copy-editor-diagnostics" class="secondary" disabled>Copy diagnostics</button><button id="clear-editor-diagnostics" class="text-button" disabled>Clear reports</button><p id="editor-diagnostic-status" role="status"></p><pre id="editor-diagnostics">No reports captured.</pre></details></footer>
+  <p class="privacy-links small"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="https://github.com/ForteDexe/Wordwell/issues" target="_blank" rel="noopener noreferrer">Support</a> · <a href="THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></p>
 </main>
 <script type="module" src="workspace.js"></script>
 <script src="inline.js"></script>

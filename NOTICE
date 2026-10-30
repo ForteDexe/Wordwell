@@ -1,0 +1,22 @@
+Wordwell
+Copyright 2026 Wordwell contributors
+
+Wordwell's original code, documentation, and original brand assets are
+licensed under the Apache License, Version 2.0. See LICENSE.
+
+Third-party components keep their respective licenses:
+
+- Card surfaces and typography are adapted and modified from Harper's
+  SuggestionBox.ts (Apache-2.0). Wordwell provides its own selection tools,
+  model-backed correction/translation behavior, layout, and controls.
+  See extension/THIRD_PARTY_NOTICES.txt and extension/licenses/harper-LICENSE.txt
+  in the source repository, or THIRD_PARTY_NOTICES.txt and
+  licenses/harper-LICENSE.txt in the extension package.
+- wllama is MIT licensed. Its license is included at runtime/wllama/WLLAMA-LICENSE
+  in the source repository and vendor/LICENSE in the extension package.
+- llama.cpp is MIT licensed. Its license is included at runtime/wllama/LLAMA-LICENSE
+  in the source repository and vendor/LLAMA-LICENSE in the extension package.
+
+Model weights are downloaded separately, are not included in the extension,
+and remain subject to their own licenses. Wordwell is not an official Harper,
+wllama, llama.cpp, Qwen, or Unsloth release.

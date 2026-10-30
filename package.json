@@ -8,6 +8,9 @@
     "test:engine": "node scripts/test-engine.mjs",
     "build:extension": "node scripts/build-extension.mjs",
     "build:icons": "node scripts/build-icons.mjs",
+    "build:release": "node scripts/build-release.mjs",
+    "test:release": "npm run build:release && node scripts/test-release.mjs",
+    "test:package": "npm run build:extension && node --test scripts/release-package.test.mjs",
     "test:diff": "node --test scripts/text-diff.test.mjs",
     "test:budget": "node --test scripts/token-budget.test.mjs",
     "test:workspace": "node scripts/test-workspace.mjs",
@@ -20,9 +23,11 @@
     "@wllama/wllama": "3.8.1"
   },
   "devDependencies": {
+    "fflate": "0.8.3",
     "playwright": "1.64.1"
   },
   "engines": {
     "node": ">=24"
-  }
+  },
+  "license": "Apache-2.0"
 }

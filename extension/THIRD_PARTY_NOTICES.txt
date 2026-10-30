@@ -1,3 +1,6 @@
+Wordwell's original code is licensed under Apache License 2.0.
+See LICENSE and NOTICE at the root of the source repository or extension package.
+
 The card surfaces and typography in inline.css are adapted from Harper:
 https://github.com/Automattic/harper/blob/3e85f2842e0685c6a9eb11ecb1267f66ddb7d678/packages/lint-framework/src/lint/SuggestionBox.ts
 

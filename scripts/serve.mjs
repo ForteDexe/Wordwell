@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const defaultModel = 'Qwen3.5-0.8B-UD-Q6_K_XL.gguf';
 const types = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.wasm': 'application/wasm' };
 
-export async function startServer({ port = Number(process.env.PORT || 8766), modelDirectory = process.env.MODEL_DIR || 'D:/LLM_Models/Qwen3.5-0.8B' } = {}) {
+export async function startServer({ port = Number(process.env.PORT || 8766), modelDirectory = process.env.MODEL_DIR || path.join(root, 'models') } = {}) {
   const modelRoot = path.resolve(modelDirectory);
   const models = await Promise.all((await readdir(modelRoot)).filter(name => name.endsWith('.gguf')).map(async name => ({ name, bytes: (await stat(path.join(modelRoot, name))).size })));
   const server = createServer(async (request, response) => {

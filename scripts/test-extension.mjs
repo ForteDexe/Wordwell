@@ -16,16 +16,27 @@ import { testCorrectionLanguages } from './test-languages.mjs';
 import { testPromptSettings } from './test-prompts.mjs';
 import { testTranslation } from './test-translation.mjs';
 import { testPageTranslation } from './test-page-translation.mjs';
+import { captureStoreScreenshots } from './store-screenshots.mjs';
 
-const extensionPath = path.resolve('dist/extension');
-const modelPath = process.env.MODEL_FILE_PATH || 'D:/LLM_Models/Qwen3.5-0.8B/Qwen3.5-0.8B-UD-Q6_K_XL.gguf';
+const extensionPath = path.resolve(process.env.EXTENSION_PATH || 'dist/extension');
+const modelPath = process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf');
 await mkdir('artifacts', { recursive: true });
 await mkdir('.browser-check', { recursive: true });
 const profile = await mkdtemp(path.resolve('.browser-check/extension-'));
-const report = { modelPath, checks: [], pageErrors: [], consoleErrors: [], chromeWarnings: [], externalRequests: [] };
+const report = { modelPath, extensionPath, releaseSha256: process.env.RELEASE_SHA256 || null, checks: [], pageErrors: [], consoleErrors: [], chromeWarnings: [], externalRequests: [] };
 const fixtureHTML = await readFile('test-fixtures/inline.html');
+const storeHTML = await readFile('test-fixtures/store-demo.html');
+const storeCSS = await readFile('test-fixtures/store-demo.css');
+const storeIcon = await readFile(path.join(extensionPath, 'icons/icon128.png'));
 const fixture = createServer((request, response) => {
   if (request.url === '/favicon.ico') { response.writeHead(204).end(); return; }
+  if (request.url === '/store-demo.css') { response.setHeader('Content-Type', 'text/css'); response.end(storeCSS); return; }
+  if (request.url === '/store-icon.png') { response.setHeader('Content-Type', 'image/png'); response.end(storeIcon); return; }
+  if (request.url === '/store-demo.html') {
+    response.setHeader('Content-Type', 'text/html');
+    response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self'");
+    response.end(storeHTML); return;
+  }
   response.setHeader('Content-Type', 'text/html');
   response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'none'; style-src 'none'; img-src 'none'");
   response.end(fixtureHTML);
@@ -419,6 +430,7 @@ try {
   await testPromptSettings({ page, report });
   await testTranslation({ page, site, report });
   await testPageTranslation({ page, site, context, report });
+  if (process.env.RELEASE_SCREENSHOTS) await captureStoreScreenshots({ context, page, site, fixtureOrigin, report });
   await page.bringToFront();
   await page.click('#unload');
   await page.waitForFunction(() => !window.localEnglish.model.busy);

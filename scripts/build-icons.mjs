@@ -10,7 +10,8 @@ try {
   const page = await browser.newPage({ deviceScaleFactor: 1 });
   for (const size of [16, 32, 48, 128]) {
     await page.setViewportSize({ width: size, height: size });
-    await page.setContent(`<!doctype html><style>html,body{margin:0;width:100%;height:100%}svg{display:block;width:100%;height:100%}</style>${svg}`);
+    const padding = size === 128 ? 16 : 0;
+    await page.setContent(`<!doctype html><style>html,body{margin:0;width:100%;height:100%}body{box-sizing:border-box;padding:${padding}px}svg{display:block;width:100%;height:100%}</style>${svg}`);
     await page.screenshot({ path: fileURLToPath(new URL(`icon${size}.png`, directory)), omitBackground: true });
   }
   console.log('Wordwell icons generated: 16, 32, 48, and 128 pixels.');

@@ -94,6 +94,7 @@ function refresh() {
   $('unload').disabled = busy || !model.runtime;
   $('model-file').disabled = busy || Boolean(model.runtime);
   $('forget').disabled = busy || !remembered;
+  $('setup-privacy').hidden = model.ready || Boolean(remembered);
   $('correct').disabled = busy || !model.ready || !$('original').value.trim();
   $('original').disabled = busy && !inlineBusy;
   $('clear').disabled = busy;
