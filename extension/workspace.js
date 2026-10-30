@@ -136,8 +136,28 @@ $('copy').addEventListener('click', async () => {
 $('clear').addEventListener('click', () => { $('original').value = ''; clearResult(); clearError(); status('Text cleared.'); refresh(); });
 $('use-selection').addEventListener('click', () => useSelection(pendingSelection));
 chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'session' && changes.editorDiagnostics) showEditorDiagnostics(changes.editorDiagnostics.newValue || []);
+  if (area === 'local' && changes.autoCheck) $('auto-check').checked = changes.autoCheck.newValue !== false;
   if (area === 'session' && changes.selection?.newValue) useSelection(changes.selection.newValue);
 });
+function showEditorDiagnostics(reports) {
+  $('editor-diagnostics').textContent = reports.length ? JSON.stringify(reports, null, 2) : 'No reports captured.';
+  $('copy-editor-diagnostics').disabled = !reports.length; $('clear-editor-diagnostics').disabled = !reports.length;
+  if (reports.length) {
+    $('editor-diagnostics-panel').open = true;
+    $('editor-diagnostic-status').textContent = `${reports.length} report${reports.length === 1 ? '' : 's'} captured. No comment text included.`;
+    requestAnimationFrame(() => $('editor-diagnostics-panel').scrollIntoView({ block: 'start' }));
+  }
+  else $('editor-diagnostic-status').textContent = '';
+}
+chrome.storage.session.get('editorDiagnostics').then(({ editorDiagnostics = [] }) => showEditorDiagnostics(editorDiagnostics)).catch(showError);
+$('copy-editor-diagnostics').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('editor-diagnostics').textContent); $('editor-diagnostic-status').textContent = 'Diagnostics copied. You can paste them into this chat.'; }
+  catch (error) { showError(error); }
+});
+$('clear-editor-diagnostics').addEventListener('click', () => chrome.storage.session.remove('editorDiagnostics').catch(showError));
+chrome.storage.local.get({ autoCheck: true }).then(({ autoCheck }) => { $('auto-check').checked = autoCheck !== false; }).catch(showError);
+$('auto-check').addEventListener('change', () => { chrome.storage.local.set({ autoCheck: $('auto-check').checked }).catch(showError); });
 chrome.storage.session.get('selection').then(({ selection }) => { if (selection) useSelection(selection); }).catch(showError);
 
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
@@ -148,12 +168,16 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   // The workspace is also an inline-test surface. Keep its text box editable
   // and focused during an inline request, just like a normal webpage field.
   inlineBusy = true;
-  status('Checking selected webpage text…');
+  status('Checking writing…');
   const checking = model.correct(message.text);
   refresh();
-  checking.then(async correction => { await setModelState('ready', '', workspaceTabId); respond({ result: correction }); })
-    .catch(error => { showError(error); respond({ error: error.message, code: 'engine-error' }); })
-    .finally(() => { inlineBusy = false; status('Model ready. You can check more text.'); refresh(); });
+  (async () => {
+    let response;
+    try { const correction = await checking; await setModelState('ready', '', workspaceTabId); response = { result: correction }; }
+    catch (error) { showError(error); response = { error: error.message, code: 'engine-error' }; }
+    finally { inlineBusy = false; status('Model ready. You can check more text.'); refresh(); }
+    respond(response);
+  })();
   return true;
 });
 

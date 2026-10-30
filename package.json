@@ -1,6 +1,6 @@
 {
-  "name": "harper-local-model-test",
-  "version": "0.1.0",
+  "name": "local-english",
+  "version": "0.5.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "test:engine": "node scripts/test-engine.mjs",
     "build:extension": "node scripts/build-extension.mjs",
     "test:diff": "node --test scripts/text-diff.test.mjs",
-    "test:extension": "node scripts/test-extension.mjs"
+    "test:extension": "node scripts/test-extension.mjs",
+    "test:editors": "node scripts/test-editor-checks.mjs"
   },
   "dependencies": {
     "@wllama/wllama": "3.8.1"

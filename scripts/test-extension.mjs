@@ -3,6 +3,13 @@ import { mkdir, mkdtemp, writeFile, readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { testAutomaticChecking } from './test-auto-check.mjs';
+import { testShadowEditors } from './test-shadow-editors.mjs';
+import { testCommentLayouts } from './test-comment-layouts.mjs';
+import { testEditorDiagnostics } from './test-editor-diagnostics.mjs';
+import { testOverlayVisibility } from './test-overlay-visibility.mjs';
+import { testYouTubeGeometry } from './test-youtube-geometry.mjs';
+import { removeTestProfile } from './browser-profile.mjs';
 
 const extensionPath = path.resolve('dist/extension');
 const modelPath = process.env.MODEL_FILE_PATH || 'D:/LLM_Models/Qwen3.5-0.8B/Qwen3.5-0.8B-UD-Q6_K_XL.gguf';
@@ -49,6 +56,8 @@ try {
   });
   await page.goto(`chrome-extension://${extensionId}/workspace.html`);
   await page.waitForFunction(() => window.localEnglish?.initialized);
+  await page.locator('#auto-check').uncheck();
+  await page.waitForFunction(async () => (await chrome.storage.local.get('autoCheck')).autoCheck === false);
   assert.equal(await page.evaluate(() => crossOriginIsolated), true);
   report.checks.push('Extension page is cross-origin isolated');
 
@@ -194,8 +203,16 @@ try {
   report.checks.push('Inline popup uses the existing model and preserves both drafts');
   assert.deepEqual(await inlineHost.locator('.diff-added').allTextContents(), ['went', 'bought']);
   assert.deepEqual(await inlineHost.locator('.removed del').allTextContents(), ['go', 'buy']);
-  report.checks.push('Suggestion highlights changed words and shows removed words separately');
+  assert.equal(await inlineHost.locator('.original').isVisible(), false);
+  assert.equal(await inlineHost.locator('.removed').isVisible(), false);
+  await inlineHost.locator('summary').click();
+  assert.equal(await inlineHost.locator('.original').isVisible(), true);
+  assert.equal(await inlineHost.locator('.removed').isVisible(), true);
+  await inlineHost.locator('summary').click();
+  await inlineHost.locator('.original').waitFor({ state: 'hidden' });
+  report.checks.push('The clean suggestion card highlights edits and reveals original/removed text through Show changes');
   await site.screenshot({ path: 'artifacts/inline-suggestion.png', fullPage: true });
+  await inlineHost.locator('.panel').screenshot({ path: 'artifacts/selection-card.png' });
   await site.locator('#paragraph').evaluate(field => {
     window.replacementInputs = [];
     field.addEventListener('input', event => window.replacementInputs.push({ value: field.value, data: event.data, trusted: event.isTrusted }));
@@ -278,7 +295,9 @@ try {
   await inlineTrigger.waitFor({ state: 'visible' });
   await inlineTrigger.click(); await inlineState('result');
   assert.equal(await inlineHost.locator('.correction').innerText(), 'I like the book.');
+  await inlineHost.locator('summary').click();
   assert.match(await inlineHost.locator('.removed').innerText(), /the/);
+  await inlineHost.locator('summary').click();
   await site.getByRole('button', { name: 'Replace', exact: true }).click();
   assert.equal(await site.locator('#paragraph').inputValue(), 'I like the book.');
   report.checks.push('Deletion-only correction shows removed text and replaces with the exact suggestion');
@@ -348,6 +367,12 @@ try {
   const scrolledIcon = await inlineTrigger.boundingBox();
   assert.ok(Math.abs(scrolledIcon.x - startPoint.x) < 20 && Math.abs(scrolledIcon.y + 31 - startPoint.y) < 25, 'Icon must follow the native start of a wrapped, scrolled selection');
   report.checks.push('Icon anchors to a real mouse selection in wrapped, scrolled text');
+  await testCommentLayouts({ page, site, report, loaded });
+  await testShadowEditors({ page, site, report, loaded });
+  await testAutomaticChecking({ context, page, site, report, loaded });
+  await testEditorDiagnostics({ context, page, site, worker, report });
+  await testOverlayVisibility({ page, site, worker, report });
+  await testYouTubeGeometry({ page, site, worker, report });
   report.afterInline = await page.evaluate(() => window.localEnglish.snapshot());
   assert.equal(report.afterInline.loadCount, 1);
   assert.equal(report.afterInline.info.instanceId, loaded.info.instanceId);
@@ -440,4 +465,5 @@ try {
   await writeFile('artifacts/extension-test.json', JSON.stringify(report, null, 2));
   await context?.close();
   await new Promise(resolve => fixture.close(resolve));
+  await removeTestProfile(profile);
 }

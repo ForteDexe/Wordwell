@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packageWorkers } from './package-workers.mjs';
 import { diffText } from '../extension/text-diff.js';
+import { createWritingTools } from '../extension/writing-tools.js';
+import { createAutoChecker } from '../extension/auto-check.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(root, 'dist/extension');
@@ -11,10 +13,15 @@ await cp(path.join(root, 'extension'), output, { recursive: true });
 const inlineSource = await readFile(path.join(root, 'extension/inline.js'), 'utf8');
 if (inlineSource.split("'__INLINE_CSS__'").length !== 2) throw new Error('Missing inline stylesheet placeholder');
 if (inlineSource.split("'__INLINE_DIFF__'").length !== 2) throw new Error('Missing inline diff placeholder');
+for (const placeholder of ['__INLINE_WRITING_TOOLS__', '__INLINE_AUTO_CHECKER__']) {
+  if (inlineSource.split(`'${placeholder}'`).length !== 2) throw new Error(`Missing ${placeholder} placeholder`);
+}
 const inlineCSS = await readFile(path.join(root, 'extension/inline.css'), 'utf8');
 await writeFile(path.join(output, 'inline.js'), inlineSource
   .replace("'__INLINE_CSS__'", () => JSON.stringify(inlineCSS))
-  .replace("'__INLINE_DIFF__'", () => diffText.toString()));
+  .replace("'__INLINE_DIFF__'", () => diffText.toString())
+  .replace("'__INLINE_WRITING_TOOLS__'", () => createWritingTools.toString())
+  .replace("'__INLINE_AUTO_CHECKER__'", () => createAutoChecker.toString()));
 await mkdir(path.join(output, 'vendor/wasm'), { recursive: true });
 for (const file of ['index.js', 'wasm/wllama.wasm']) {
   await cp(path.join(root, 'node_modules/@wllama/wllama/esm', file), path.join(output, 'vendor', file));

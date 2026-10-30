@@ -1,7 +1,7 @@
 // Word and punctuation diff. Kept self-contained for static bundling into the
 // classic content script; model output is always rendered as text, never HTML.
 export function diffText(original, corrected) {
-  const tokenize = text => text.match(/\s+|[\p{L}\p{N}\p{M}]+|[^\s\p{L}\p{N}\p{M}]/gu) || [];
+  const tokenize = text => text.match(/\s+|[\p{L}\p{N}\p{M}]+(?:['’][\p{L}\p{N}\p{M}]+)*|[^\s\p{L}\p{N}\p{M}]/gu) || [];
   const before = tokenize(original), after = tokenize(corrected);
   const rows = Array.from({ length: before.length + 1 }, () => new Uint16Array(after.length + 1));
   for (let i = before.length - 1; i >= 0; i--) {
