@@ -22,31 +22,50 @@
   </section>
   <section class="settings-card" aria-labelledby="settings-heading">
     <h2 id="settings-heading">Settings</h2>
-    <label class="auto-setting"><input id="auto-check" type="checkbox" checked> Check automatically after a typing pause</label>
-    <div class="language-setting">
-      <label for="target-language">Correction language</label>
-      <select id="target-language" aria-describedby="language-help"><option value="en">English</option></select>
-      <p id="language-help" class="small muted">Correct text in this language. Results depend on the loaded model.</p>
+    <div class="settings-group" role="group" aria-labelledby="correction-settings-heading">
+      <h3 id="correction-settings-heading">Correction</h3>
+      <div class="setting-row setting-row--toggle">
+        <label for="auto-check">Automatic checking</label>
+        <div class="checkbox-control"><input id="auto-check" type="checkbox" checked aria-describedby="auto-check-help"><span id="auto-check-help" class="small muted">After a typing pause</span></div>
+      </div>
+      <div class="setting-row">
+        <label for="target-language">Correction language</label>
+        <div class="setting-control">
+          <select id="target-language" aria-describedby="language-help"><option value="en">English</option></select>
+          <p id="language-help" class="small muted">Correct text in this language. Results depend on the loaded model.</p>
+        </div>
+      </div>
+      <details class="prompt-setting" id="prompt-settings">
+        <summary><span>Correction prompt</span><span id="prompt-status" class="small muted" role="status"></span></summary>
+        <div class="prompt-content">
+          <label for="custom-prompt">Prompt</label>
+          <textarea id="custom-prompt" rows="6" maxlength="50000" spellcheck="false" data-local-english-ignore aria-describedby="prompt-help"></textarea>
+          <p id="prompt-help" class="small muted">A custom prompt replaces the correction language's default. Leave blank and save to use the default prompt.</p>
+          <div class="actions"><button id="save-prompt" class="secondary">Save prompt</button><button id="default-prompt" class="text-button">Load default</button></div>
+        </div>
+      </details>
     </div>
-    <details class="prompt-setting" id="prompt-settings">
-      <summary>Correction prompt</summary>
-      <label for="custom-prompt">Prompt</label>
-      <textarea id="custom-prompt" rows="6" maxlength="50000" spellcheck="false" data-local-english-ignore aria-describedby="prompt-help"></textarea>
-      <p id="prompt-help" class="small muted">A custom prompt replaces the correction language's default. Leave blank and save to use the default prompt.</p>
-      <button id="save-prompt" class="secondary">Save prompt</button>
-      <button id="default-prompt" class="text-button">Load default</button>
-      <span id="prompt-status" class="small muted" role="status"></span>
-    </details>
-    <div class="translation-setting">
-      <label class="auto-setting"><input id="translation-enabled" type="checkbox"> Enable translation</label>
-      <label for="translation-language">Translate into</label>
-      <select id="translation-language" disabled><option value="en">English</option></select>
+    <div class="settings-group" role="group" aria-labelledby="translation-settings-heading">
+      <h3 id="translation-settings-heading">Translation</h3>
+      <div class="setting-row setting-row--toggle">
+        <label for="translation-enabled">Enable translation</label>
+        <div class="checkbox-control"><input id="translation-enabled" type="checkbox"></div>
+      </div>
+      <div class="setting-row">
+        <label for="translation-language">Translate into</label>
+        <div class="setting-control"><select id="translation-language" disabled><option value="en">English</option></select></div>
+      </div>
     </div>
-    <div class="context-setting">
-      <label for="context-size">Context size (tokens)</label>
-      <div class="context-controls"><input id="context-size" type="number" min="512" max="8192" step="256" value="1024" required aria-describedby="context-help context-validation"><button id="apply-context" class="secondary" hidden>Apply and reload model</button></div>
-      <p id="context-help" class="small muted">Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.</p>
-      <p id="context-validation" class="small" role="alert" hidden></p>
+    <div class="settings-group" role="group" aria-labelledby="model-settings-heading">
+      <h3 id="model-settings-heading">Model</h3>
+      <div class="setting-row">
+        <label for="context-size">Context size (tokens)</label>
+        <div class="setting-control">
+          <div class="context-controls"><input id="context-size" type="number" min="512" max="8192" step="256" value="1024" required aria-describedby="context-help context-validation"><button id="apply-context" class="secondary" hidden>Apply and reload model</button></div>
+          <p id="context-help" class="small muted">Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.</p>
+          <p id="context-validation" class="small" role="alert" hidden></p>
+        </div>
+      </div>
     </div>
   </section>
   <section class="editor-card" aria-labelledby="editor-heading">
