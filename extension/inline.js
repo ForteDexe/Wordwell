@@ -5,8 +5,10 @@
   const createWritingTools = '__INLINE_WRITING_TOOLS__';
   const createAutoChecker = '__INLINE_AUTO_CHECKER__';
   const createLanguageTools = '__INLINE_LANGUAGE_TOOLS__';
+  const languages = createLanguageTools();
   const events = new AbortController();
-  let host, root, trigger, panel, current = null;
+  let host, root, trigger, translationTrigger, panel, current = null;
+  let translationEnabled = false, translationLanguage = languages.defaultLanguage;
   let requestVersion = 0, frame = 0, destroyed = false, observer;
   let automatic;
   let componentFocusListener;
@@ -137,7 +139,7 @@
     host.dataset.state = 'hidden';
     root = host.attachShadow({ mode: 'open' });
     const sheet = new CSSStyleSheet(); sheet.replaceSync(CSS); root.adoptedStyleSheets = [sheet];
-    trigger = button('', 'trigger', checkSelection);
+    trigger = button('', 'trigger', () => checkSelection('correct'));
     const bulb = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     bulb.setAttribute('viewBox', '0 0 24 24'); bulb.setAttribute('aria-hidden', 'true'); bulb.setAttribute('focusable', 'false');
     const outline = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -146,19 +148,28 @@
     trigger.setAttribute('aria-label', 'Refine selected text');
     trigger.title = 'Refine selected text'; trigger.hidden = true;
     on(trigger, 'pointerdown', event => event.preventDefault());
+    translationTrigger = button('', 'trigger translate-trigger', () => checkSelection('translate'));
+    translationTrigger.setAttribute('aria-label', 'Translate selected text'); translationTrigger.hidden = true;
+    const translationIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    translationIcon.setAttribute('viewBox', '0 0 24 24'); translationIcon.setAttribute('aria-hidden', 'true'); translationIcon.setAttribute('focusable', 'false');
+    const translationPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    translationPath.setAttribute('d', 'M2 5h12M7 2h1M12 5c-1 5-4 8-8 10m1-7c1 3 3 5 6 7m1 7 5-11 5 11m-8-4h6');
+    translationIcon.append(translationPath); translationTrigger.append(translationIcon);
+    on(translationTrigger, 'pointerdown', event => event.preventDefault());
     panel = element('section', 'panel'); panel.hidden = true;
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Local English suggestion');
-    root.append(trigger, panel);
+    root.append(trigger, translationTrigger, panel);
     document.documentElement.append(host);
     raiseUI(deepActiveElement());
   }
   function destroy() {
+    chrome.storage.onChanged.removeListener(translationSettingsListener);
     destroyed = true; automatic?.destroy(); events.abort(); observer?.disconnect(); visibilityObserver.disconnect(); cancelAnimationFrame(visibilityFrame); cancelAnimationFrame(frame); host?.remove();
   }
   function hide() {
     requestVersion += 1;
     current = null; observer?.disconnect();
-    if (host) { host.dataset.state = 'hidden'; trigger.hidden = true; panel.hidden = true; }
+    if (host) { host.dataset.state = 'hidden'; trigger.hidden = true; translationTrigger.hidden = true; panel.hidden = true; }
   }
   function valid(snapshot) {
     if (!snapshot?.target.isConnected) return false;
@@ -230,11 +241,18 @@
     const controls = controlLayout(current.target);
     if (!controls) { hide(); return; }
     const { size, left, top } = controls;
-    // Use the same geometry as the status/count, with a six-pixel gap. If
-    // the viewport is too narrow for the pair, put the bulb above the count.
-    const bulbLeft = left - size - 6, stacked = bulbLeft < 4;
-    const bulbTop = stacked ? clamp(top - size - 6, 4, innerHeight - size - 4) : top;
-    Object.assign(trigger.style, { width: `${size}px`, height: `${size}px`, left: `${stacked ? left : bulbLeft}px`, top: `${bulbTop}px` });
+    // Keep the optional translation button beside the bulb and status/count.
+    let cursorLeft = left, cursorTop = top;
+    function place(control) {
+      const nextLeft = cursorLeft - size - 6;
+      if (nextLeft < 4) cursorTop = clamp(cursorTop - size - 6, 4, innerHeight - size - 4);
+      else cursorLeft = nextLeft;
+      Object.assign(control.style, { width: `${size}px`, height: `${size}px`, left: `${cursorLeft}px`, top: `${cursorTop}px` });
+    }
+    if (translationEnabled) place(translationTrigger);
+    place(trigger);
+    const bulbLeft = cursorLeft, bulbTop = cursorTop;
+    translationTrigger.title = `Translate selected text to ${languages.options.find(option => option.code === translationLanguage).label}`;
     if (!panel.hidden) {
       const point = anchor(current) || (!current.automatic ? { left: Math.max(4, bulbLeft), top: bulbTop, bottom: bulbTop + size } : null);
       if (!point || point.bottom < 0 || point.top > innerHeight) { hide(); return; }
@@ -277,7 +295,7 @@
       : current.range?.startContainer === next.range.startContainer && current.range.startOffset === next.range.startOffset && current.range.endContainer === next.range.endContainer && current.range.endOffset === next.range.endOffset);
     if (sameRange && valid(current) && current.target === next.target && current.text === next.text) { position(); return; }
     hide(); current = next; ensureUI();
-    host.dataset.state = 'trigger'; trigger.hidden = false; panel.hidden = true;
+    host.dataset.state = 'trigger'; trigger.hidden = false; translationTrigger.hidden = !translationEnabled; panel.hidden = true;
     observer = new ResizeObserver(position); observer.observe(current.target);
     position();
   }
@@ -307,13 +325,14 @@
   }
   function replaceSelection(snapshot, corrected) {
     if (!valid(snapshot)) { hide(); return; }
+    const outputName = snapshot.operation === 'translate' ? 'translation' : 'correction';
     if (snapshot.kind === 'plain') {
       const length = snapshot.value.length - (snapshot.end - snapshot.start) + corrected.length;
       if (snapshot.target.maxLength >= 0 && length > snapshot.target.maxLength) {
-        replacementError(snapshot, 'The correction exceeds this field’s character limit.'); return;
+        replacementError(snapshot, `The ${outputName} exceeds this field’s character limit.`); return;
       }
       if (snapshot.target instanceof HTMLInputElement && /[\r\n]/.test(corrected)) {
-        replacementError(snapshot, 'This field needs a single-line correction.'); return;
+        replacementError(snapshot, `This field needs a single-line ${outputName}.`); return;
       }
     }
     snapshot.target.focus({ preventScroll: true });
@@ -358,10 +377,13 @@
   }
 
   function render(state, snapshot, response) {
-    ensureUI(); panel.replaceChildren(); panel.hidden = false; trigger.hidden = true; host.dataset.state = state;
+    ensureUI(); panel.replaceChildren(); panel.hidden = false; trigger.hidden = true; translationTrigger.hidden = true; host.dataset.state = state;
+    const translating = snapshot.operation === 'translate';
+    const targetLabel = languages.options.find(option => option.code === snapshot.translationLanguage)?.label;
     panel.dataset.source = snapshot.automatic ? 'automatic' : 'selection';
     const unchanged = state === 'result' && snapshot.text.trim() === response.result.corrected;
-    const title = state === 'loading' ? 'Checking your writing…' : state === 'result'
+    const title = translating ? state === 'loading' ? `Translating to ${targetLabel}…` : state === 'result' ? `Translation · ${targetLabel}` : 'Couldn’t translate this text'
+      : state === 'loading' ? 'Checking your writing…' : state === 'result'
       ? unchanged ? 'No changes suggested' : snapshot.automatic ? 'Grammar suggestion' : 'Improve clarity and fix grammar'
       : 'Couldn’t check this text';
     const heading = element('div', 'heading'); heading.append(element('span', '', title));
@@ -369,14 +391,14 @@
     const body = element('div', 'body'); body.setAttribute('aria-live', 'polite');
     const actions = element('div', 'actions');
     if (state === 'loading') {
-      const message = element('p', 'message'); message.append(element('span', 'spinner'), document.createTextNode('Checking selected text…')); body.append(message);
+      const message = element('p', 'message'); message.append(element('span', 'spinner'), document.createTextNode(translating ? 'Translating selected text…' : 'Checking selected text…')); body.append(message);
     } else if (state === 'result') {
-      const [correction, removed] = renderDiff(snapshot.text, response.result.corrected);
+      const [correction, removed] = translating ? [element('p', 'text correction', response.result.corrected)] : renderDiff(snapshot.text, response.result.corrected);
       body.append(correction);
       const details = element('details', 'change-details');
-      details.append(element('summary', '', 'Show changes'), element('p', 'label', 'Original'), element('p', 'text original', snapshot.text));
+      details.append(element('summary', '', translating ? 'Show original' : 'Show changes'), element('p', 'label', 'Original'), element('p', 'text original', snapshot.text));
       if (removed) details.append(removed);
-      details.append(element('p', 'message review-note', 'Review before using. The model can still miss errors.'));
+      details.append(element('p', 'message review-note', translating ? 'Review the translation before replacing your text.' : 'Review before using. The model can still miss errors.'));
       on(details, 'toggle', position);
       body.append(details);
       const replace = button('Replace', 'action', () => replaceSelection(snapshot, response.result.corrected));
@@ -412,7 +434,7 @@
     } else {
       body.append(element('p', 'message', response.error));
       if (response.code === 'model-not-loaded') actions.append(button('Open model workspace', 'action', () => send({ type: 'open-workspace' }).catch(() => {})));
-      else actions.append(button('Try again', 'action secondary', checkSelection));
+      else actions.append(button('Try again', 'action secondary', () => checkSelection(translating ? 'translate' : 'correct')));
     }
     panel.append(heading, body, actions); position();
   }
@@ -423,9 +445,11 @@
       throw error;
     }
   }
-  async function checkSelection() {
+  async function checkSelection(operation = 'correct') {
     if (!current || !valid(current)) { hide(); return; }
-    const snapshot = current;
+    if (operation === 'translate' && !translationEnabled) { hide(); return; }
+    const snapshot = { ...current, operation, translationLanguage };
+    current = snapshot;
     // Keyboard activation hides the focused bulb when the card opens. Return
     // focus to the source first so the browser keeps its saved selection.
     if (belongsToUI(deepActiveElement())) {
@@ -437,10 +461,12 @@
     const version = ++requestVersion, language = automatic.language(), promptOverride = automatic.prompt();
     render('loading', snapshot);
     try {
-      const response = await send({ type: 'inline-correct', text: snapshot.text });
+      const response = await send({ type: operation === 'translate' ? 'inline-translate' : 'inline-correct', text: snapshot.text, language: snapshot.translationLanguage });
       if (destroyed || version !== requestVersion) return;
       if (!valid(snapshot)) { hide(); return; }
-      if (response?.result && (response.result.language !== language || response.result.promptOverride !== promptOverride)) {
+      const matches = operation === 'translate' ? response?.result?.operation === 'translate' && response.result.language === snapshot.translationLanguage
+        : response?.result?.operation !== 'translate' && response?.result?.language === language && response.result.promptOverride === promptOverride;
+      if (response?.result && !matches) {
         render('error', snapshot, { error: 'Correction settings changed. Please try again.' }); return;
       }
       render(response?.result ? 'result' : 'error', snapshot, response || { error: 'The model workspace did not respond. Please try again.' });
@@ -609,7 +635,7 @@
     probeSelection: scan,
     onEditorFocus: listener => { componentFocusListener = listener; on(window, 'focusin', listener, { capture: true }); },
     tools: createWritingTools(diffText),
-    languages: createLanguageTools(),
+    languages,
     settingsChanged: () => { requestVersion++; hide(); schedule(); },
     ui: () => { ensureUI(); return { host, root }; },
     openSuggestion: (snapshot, corrected, reveal) => {
@@ -620,6 +646,27 @@
     },
     hideSuggestion: () => { if (current?.automatic) hide(); },
   });
+
+  function updateTranslationSettings(values) {
+    const enabled = values.translationEnabled === true, language = languages.normalize(values.translationLanguage);
+    if (enabled === translationEnabled && language === translationLanguage) return;
+    translationEnabled = enabled; translationLanguage = language;
+    if (current?.operation === 'translate') hide();
+    if (host) {
+      translationTrigger.hidden = !enabled || host.dataset.state !== 'trigger';
+      position();
+    }
+    schedule();
+  }
+  function translationSettingsListener(changes, area) {
+    if (area !== 'local' || (!changes.translationEnabled && !changes.translationLanguage)) return;
+    updateTranslationSettings({
+      translationEnabled: changes.translationEnabled ? changes.translationEnabled.newValue : translationEnabled,
+      translationLanguage: changes.translationLanguage ? changes.translationLanguage.newValue : translationLanguage,
+    });
+  }
+  chrome.storage.onChanged.addListener(translationSettingsListener);
+  chrome.storage.local.get({ translationEnabled: false, translationLanguage: languages.defaultLanguage }).then(updateTranslationSettings).catch(() => {});
 
   on(document, 'selectionchange', schedule);
   on(document, 'beforetoggle', event => { if (!insideUI(event)) topLayerDirty = true; }, { capture: true });

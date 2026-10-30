@@ -23,6 +23,15 @@ test('an exact fit includes the output allowance and safety margin', async () =>
   await assert.rejects(planCorrection(text, count, context - 1), /too long/);
 });
 
+test('a translation expansion allowance splits a passage that fits as a correction', async () => {
+  const text = 'a'.repeat(70) + '\n' + 'b'.repeat(70);
+  assert.equal(chunks(await planCorrection(text, count, 512)).length, 1);
+  const plan = await planCorrection(text, count, 512, tokens => Math.max(256, tokens * 3 + 32));
+  assert.equal(chunks(plan).length, 2);
+  assert.ok(chunks(plan).every(part => part.maxTokens >= 256 && part.promptTokens + part.maxTokens + CONTEXT_MARGIN <= 512));
+  assert.equal(original(plan), text);
+});
+
 test('newlines take priority over punctuation, preserving CRLF and blank lines', async () => {
   const line = 'A'.repeat(30) + '. ' + 'b'.repeat(30);
   const text = `  ${line}\r\n\r\n\t${line}\n`;

@@ -32,11 +32,16 @@
       <summary>Correction prompt</summary>
       <label for="custom-prompt">Prompt</label>
       <textarea id="custom-prompt" rows="6" maxlength="50000" spellcheck="false" data-local-english-ignore aria-describedby="prompt-help"></textarea>
-      <p id="prompt-help" class="small muted">A custom prompt replaces the selected language's default. Leave blank and save to use the default prompt.</p>
+      <p id="prompt-help" class="small muted">A custom prompt replaces the correction language's default. Leave blank and save to use the default prompt.</p>
       <button id="save-prompt" class="secondary">Save prompt</button>
       <button id="default-prompt" class="text-button">Load default</button>
       <span id="prompt-status" class="small muted" role="status"></span>
     </details>
+    <div class="translation-setting">
+      <label class="auto-setting"><input id="translation-enabled" type="checkbox"> Enable translation</label>
+      <label for="translation-language">Translate into</label>
+      <select id="translation-language" disabled><option value="en">English</option></select>
+    </div>
     <div class="context-setting">
       <label for="context-size">Context size (tokens)</label>
       <div class="context-controls"><input id="context-size" type="number" min="512" max="8192" step="256" value="1024" required aria-describedby="context-help context-validation"><button id="apply-context" class="secondary" hidden>Apply and reload model</button></div>

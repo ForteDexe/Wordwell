@@ -31,7 +31,7 @@ function sections(text, level) {
   return result;
 }
 
-export async function planCorrection(text, countTokens, context = CONTEXT_SIZE) {
+export async function planCorrection(text, countTokens, context = CONTEXT_SIZE, allowance = outputAllowance) {
   const plan = [];
   const counts = new Map();
   let chunks = 0;
@@ -48,7 +48,7 @@ export async function planCorrection(text, countTokens, context = CONTEXT_SIZE) 
       }
       counts.set(core, count);
     }
-    const maxTokens = outputAllowance(count.text_tokens);
+    const maxTokens = allowance(count.text_tokens);
     if (count.prompt_tokens + maxTokens + CONTEXT_MARGIN <= context) {
       if (++chunks > MAX_CHUNKS) throw new Error('This passage needs too many checks. Select a shorter section.');
       plan.push({ text: core, prefix, suffix, promptTokens: count.prompt_tokens, textTokens: count.text_tokens, maxTokens, level });

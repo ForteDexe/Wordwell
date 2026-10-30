@@ -21,6 +21,7 @@ export function createAutoChecker(api) {
   let timer = null, drawing = 0, stopped = false, composing = false;
   let targetLanguage = languages.defaultLanguage;
   let customPrompt = '';
+  let underlinePressed = false;
   let inputs = 0, mutationsDetected = 0, lastChange = null, lastPump = 'not-started';
   const observer = new ResizeObserver(layoutChanged);
   const mutations = new MutationObserver(layoutChanged);
@@ -181,6 +182,8 @@ export function createAutoChecker(api) {
   function drawSoon() { cancelAnimationFrame(drawing); drawing = requestAnimationFrame(draw); }
   function layoutChanged() { refreshEditorVisibility(); drawSoon(); }
   function draw() {
+    // Keep the pressed button attached until its click event is delivered.
+    if (underlinePressed) return;
     underlines.replaceChildren(); indicator.hidden = true;
     if (stopped || !settingsReady || !active || document.hidden || !active.target.isConnected || !editableTarget(active.target)) return;
     raiseUI(active.target);
@@ -208,7 +211,7 @@ export function createAutoChecker(api) {
         mark.setAttribute('aria-label', `Review correction: ${result.snapshot.text} → ${result.corrected || '(remove)'}`);
         mark.title = 'Review correction';
         Object.assign(mark.style, { left: `${rect.left}px`, top: `${rect.bottom - 2}px`, width: `${Math.max(3, rect.right - rect.left)}px` });
-        on(mark, 'pointerdown', event => event.preventDefault());
+        on(mark, 'pointerdown', event => { event.preventDefault(); underlinePressed = true; });
         underlines.append(mark);
       }
     }
@@ -260,6 +263,10 @@ export function createAutoChecker(api) {
   });
   on(window, 'scroll', layoutChanged, { capture: true, passive: true });
   on(window, 'resize', layoutChanged, { passive: true });
+  const releaseUnderline = () => { if (underlinePressed) { underlinePressed = false; drawSoon(); } };
+  on(window, 'pointerup', releaseUnderline, { capture: true });
+  on(window, 'pointercancel', releaseUnderline, { capture: true });
+  on(window, 'blur', releaseUnderline);
   on(window, 'keyup', event => { if (outside(event)) synchronize(); }, { capture: true });
   on(window, 'pointerup', event => { if (outside(event)) synchronize(); }, { capture: true });
   // Only the focused field is sampled. This catches property-only textarea

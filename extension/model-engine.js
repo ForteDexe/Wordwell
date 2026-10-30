@@ -80,6 +80,11 @@ export class LocalModel {
       chat_template_kwargs: { enable_thinking: false } };
   }
 
+  translationRequest(text, language) {
+    return { messages: [{ role: 'system', content: languageTools.translationInstruction(language) }, { role: 'user', content: text }],
+      chat_template_kwargs: { enable_thinking: false } };
+  }
+
   async countTokens(text) {
     if (!this.ready || this.busy) return null;
     const runtime = this.runtime;
@@ -95,42 +100,53 @@ export class LocalModel {
     return task;
   }
 
-  async correct(text) {
+  correct(text) {
+    return this.process(text, { operation: 'correct', language: this.targetLanguage, customPrompt: this.customPrompt });
+  }
+
+  translate(text, language) {
+    return this.process(text, { operation: 'translate', language: languageTools.normalize(language), customPrompt: '' });
+  }
+
+  async process(text, { operation, language, customPrompt }) {
     if (!this.ready) throw new Error('Choose and load a model first.');
     if (this.busy) throw new Error('A check is already running.');
     if (!text.trim()) throw new Error('Enter a sentence or a short paragraph.');
     if (text.length > MAX_TEXT_LENGTH) throw new Error('Please check a shorter section (up to 50,000 characters).');
     this.busy = true;
-    const language = this.targetLanguage;
-    const customPrompt = this.customPrompt;
+    const translating = operation === 'translate';
+    const request = value => translating ? this.translationRequest(value, language) : this.chatRequest(value, language, customPrompt);
     const started = performance.now();
     try {
       await this.tokenCountTask.catch(() => {});
       this.checkCount += 1;
       const contextSize = this.info.context;
       if (customPrompt) {
-        const base = await this.runtime.countChatTokens(this.chatRequest('', language, customPrompt));
+        const base = await this.runtime.countChatTokens(request(''));
         if (base.prompt_tokens + 128 + CONTEXT_MARGIN >= contextSize) throw new Error('The correction prompt leaves too little context. Shorten it or increase the context size.');
       }
-      const plan = await planCorrection(text, value => this.runtime.countChatTokens(this.chatRequest(value, language, customPrompt)), contextSize);
+      // Translation can expand substantially, especially between scripts.
+      const allowance = translating ? tokens => Math.max(256, tokens * 3 + 32) : undefined;
+      const plan = await planCorrection(text, value => this.runtime.countChatTokens(request(value)), contextSize, allowance);
       const chunks = plan.filter(part => part.text !== undefined);
       const output = [], budget = [], usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
       for (const part of plan) {
         if (part.literal !== undefined) { output.push(part.literal); continue; }
-        if (chunks.length > 1) this.onStatus(`Checking section ${budget.length + 1} of ${chunks.length}…`);
+        if (chunks.length > 1) this.onStatus(`${translating ? 'Translating' : 'Checking'} section ${budget.length + 1} of ${chunks.length}…`);
+        const maxTokens = translating ? contextSize - part.promptTokens - CONTEXT_MARGIN : part.maxTokens;
         const response = await this.runtime.createChatCompletion({
-          ...this.chatRequest(part.text, language, customPrompt), temperature: 0, seed: 42, max_tokens: part.maxTokens, top_p: 1, top_k: 1,
+          ...request(part.text), temperature: 0, seed: 42, max_tokens: maxTokens, top_p: 1, top_k: 1,
           repeat_penalty: 1, presence_penalty: 0, cache_prompt: false,
         });
         if (response.usage?.prompt_tokens !== part.promptTokens) throw new Error('The prompt token count changed. No correction was applied. Please try again.');
         const corrected = response.choices[0].message.content?.trim();
-        if (response.choices[0].finish_reason !== 'stop') throw new Error('The correction reached its output limit. Try a shorter passage.');
-        if (!corrected) throw new Error('The model returned no correction. Try again with a shorter passage.');
+        if (response.choices[0].finish_reason !== 'stop') throw new Error(`The ${translating ? 'translation' : 'correction'} reached its output limit. Try a shorter passage.`);
+        if (!corrected) throw new Error(`The model returned no ${translating ? 'translation' : 'correction'}. Try again with a shorter passage.`);
         output.push(part.prefix, corrected, part.suffix);
-        budget.push({ promptTokens: part.promptTokens, textTokens: part.textTokens, maxOutputTokens: part.maxTokens, completionTokens: response.usage.completion_tokens, splitLevel: part.level });
+        budget.push({ promptTokens: part.promptTokens, textTokens: part.textTokens, maxOutputTokens: maxTokens, completionTokens: response.usage.completion_tokens, splitLevel: part.level });
         for (const key of Object.keys(usage)) usage[key] += response.usage[key] || 0;
       }
-      return { original: text, corrected: output.join(''), language, promptOverride: customPrompt, seconds: (performance.now() - started) / 1000, usage,
+      return { original: text, corrected: output.join(''), operation, language, promptOverride: customPrompt, seconds: (performance.now() - started) / 1000, usage,
         budget: { context: contextSize, safetyMargin: CONTEXT_MARGIN, chunks: budget } };
     } finally { this.busy = false; }
   }

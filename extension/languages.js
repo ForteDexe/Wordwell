@@ -23,7 +23,11 @@ export function createLanguageTools() {
     return language.code === defaultLanguage ? task
       : `Never translate. If the input is not written in ${language.base}, return it exactly as it is. Otherwise, ${task[0].toLowerCase()}${task.slice(1)}`;
   }
-  return { defaultLanguage, options, normalize, normalizePrompt, instruction };
+  function translationInstruction(code) {
+    const language = options.find(option => option.code === normalize(code));
+    return `Translate the user's text into ${language.prompt}. Preserve its meaning, tone, names, and formatting. If it is already written in ${language.base}, return it unchanged. Return only the translated text, without explanations or quotation marks.`;
+  }
+  return { defaultLanguage, options, normalize, normalizePrompt, instruction, translationInstruction };
 }
 
 export const languageTools = createLanguageTools();
