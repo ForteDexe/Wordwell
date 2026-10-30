@@ -11,7 +11,15 @@ Prepare the GitHub release and Chrome Web Store submission from the same tested 
 5. Use the exact `dist/wordwell-VERSION.zip` that passed, together with its checksum. Model weights are downloaded separately and must not be added to this ZIP.
 6. Review `artifacts/store/` for three actual UI screenshots at 1280×800 and a 440×280 promotional image. The screenshots use a first-party writing demo and real local-model output. Check their wording and quality before upload.
 
-Version comes from `package.json` and must match `extension/manifest.json`. Increment both before a later store update. Commit/tag the tested source, then attach the ZIP and `.sha256` to a GitHub release. Use a tag matching the actual version, for example `v0.5.6`. The validation report includes local test paths/hardware details and is for your review, not a required public asset.
+Version comes from `package.json` and must match `extension/manifest.json`. Increment both before a later store update and refresh `package-lock.json` with `npm install --package-lock-only`. The validation report includes local test paths/hardware details and is for your review, not a required public asset.
+
+## Automatic GitHub release assets
+
+After pushing the tested source, create a GitHub release using a tag matching the version, for example `v0.5.6` (or `0.5.6`). The tagged commit must include `.github/workflows/release.yml`. Click **Publish release** to trigger **Build release** in Actions. Stable releases and prereleases are supported; saving a draft does not trigger a build.
+
+The workflow checks out the release commit, checks the tag against the package version, installs locked dependencies with Node.js 24, runs token-budget, text-diff, and package tests, then builds and attaches `wordwell-VERSION.zip` and its `.sha256` file to that same release. It uses GitHub's automatic token with `contents: write`; no additional secret is needed. A mismatched version or failed test stops the upload. Re-running a successful workflow replaces assets with the same names.
+
+Watch **Actions → Build release** for progress. **Run workflow** builds and tests the selected branch without uploading to a release. These hosted checks do not run real-model/GPU browser validation; run the local checks above before publishing. The workflow does not submit anything to the Chrome Web Store.
 
 ## Public privacy/support URLs
 
