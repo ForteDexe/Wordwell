@@ -16,8 +16,8 @@ Requirements: desktop Chrome 137 or newer, a compatible GGUF model, and enough m
 
 ## Correction and translation
 
-- **Correction:** automatic checks are on by default. Settings lets you choose a correction language, turn automatic checks off, adjust the 512–8,192-token context, or customize the correction prompt. Select text and click the bulb for a manual refinement.
-- **Text box translation:** enable it and select a target language in Settings. Select writing and click its bottom-right translation icon. Review the translation and choose Replace, or enable Instant translation to apply it directly after the icon click. Undo remains available.
+- **Correction:** automatic checks are on by default. Settings lets you choose a correction language, turn automatic checks off, adjust the 512–8,192-token context (1,024 by default), or customize the correction prompt. Select text and click the bulb for a manual refinement.
+- **Text box translation:** enable it and select a target language in Settings. Select writing and click its bottom-right translation icon. Instant translation is checked by default and applies the translation directly after the icon click. Uncheck it to preview the translation and choose Replace instead. Undo remains available.
 - **Page selection translation:** enable its separate setting and language. Select article or posted comment text, release the mouse, and click the nearby translation icon. The card offers Copy and leaves the page text unchanged.
 
 Supported surfaces include ordinary textareas, common single-line text inputs, and basic contenteditable editors, including open and closed shadow roots. Password and disabled fields are excluded. Read-only selections support page translation. Specialized editors, including Google Docs, may require additional integration. The extension cannot run on Chrome's internal pages or every restricted browser page.

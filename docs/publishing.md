@@ -51,7 +51,7 @@ All executable JS, workers, and WASM are included in the package. The external d
 2. Open Wordwell. Follow the model download link in Tips, select the downloaded GGUF, and click Load model. Allow disk/memory for the roughly 771 MB model and its saved copy. Wait for Ready. Read the linked privacy policy.
 3. In Original, enter `Yesterday I go to the shop and buy some milk.` Use Check text and review the correction; the source remains editable. Output can vary by model.
 4. On a normal HTTP/HTTPS website, type the same sentence in a supported text box. Pause, click an underline, use Replace, then Ctrl+Z. Chrome internal and other restricted pages are not supported.
-5. In Settings, enable Text box translation, choose Spanish, and select `Hello.` in a text box. Click the translation icon, review and Replace. Enable Instant translation and repeat to test direct replacement and Undo.
+5. In Settings, enable Text box translation, uncheck Instant translation, choose Spanish, and select `Hello.` in a text box. Click the translation icon, review and Replace. Enable Instant translation and repeat to test direct replacement and Undo.
 6. Enable Page selection translation and choose a target language. Select ordinary webpage text; the icon appears after mouse release. Translate and Copy. The page text stays unchanged.
 7. Close and restart Chrome. The cached model should autoload in one background workspace. Keep that workspace open while writing.
 8. Use Forget model to delete the saved copy, then Unload to release the current engine. It should not autoload on the next restart.

@@ -8,6 +8,7 @@ import { testCorrectionLanguages } from './test-languages.mjs';
 import { testPromptSettings } from './test-prompts.mjs';
 import { testTranslation } from './test-translation.mjs';
 import { testPageTranslation } from './test-page-translation.mjs';
+import { testDefaultSettings } from './test-default-settings.mjs';
 
 await mkdir('artifacts', { recursive: true });
 await mkdir('.browser-check', { recursive: true });
@@ -30,6 +31,7 @@ try {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${new URL(worker.url()).host}/workspace.html`);
   await page.waitForFunction(() => window.localEnglish?.initialized);
+  await testDefaultSettings({ page, report });
   await page.locator('#auto-check').uncheck();
   await page.setInputFiles('#model-file', process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf'));
   await page.click('#load');

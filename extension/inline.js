@@ -5,13 +5,13 @@
   const createWritingTools = '__INLINE_WRITING_TOOLS__';
   const createAutoChecker = '__INLINE_AUTO_CHECKER__';
   const createLanguageTools = '__INLINE_LANGUAGE_TOOLS__';
+  const defaults = '__INLINE_DEFAULT_SETTINGS__';
   const languages = createLanguageTools();
   const events = new AbortController();
   let host, root, trigger, translationTrigger, panel, current = null;
-  let translationEnabled = false, translationLanguage = languages.defaultLanguage;
-  let instantTranslation = false;
+  let { translationEnabled, translationLanguage, instantTranslation, pageTranslationEnabled, pageTranslationLanguage } = defaults;
   let selectionPointer = null;
-  let pageTranslationEnabled = false, pageTranslationLanguage = languages.defaultLanguage, selectionOrigin = null;
+  let selectionOrigin = null;
   const pageObserver = new MutationObserver(() => {
     if (!current?.pageSelection) return;
     if (!valid(current)) hide(); else position();
@@ -739,9 +739,9 @@
   });
 
   function updateTranslationSettings(values) {
-    const enabled = values.translationEnabled === true, language = languages.normalize(values.translationLanguage);
-    const instant = values.instantTranslation === true;
-    const pageEnabled = values.pageTranslationEnabled === true, pageLanguage = languages.normalize(values.pageTranslationLanguage);
+    const enabled = values.translationEnabled === true, language = languages.normalize(values.translationLanguage ?? defaults.translationLanguage);
+    const instant = (values.instantTranslation ?? defaults.instantTranslation) === true;
+    const pageEnabled = values.pageTranslationEnabled === true, pageLanguage = languages.normalize(values.pageTranslationLanguage ?? defaults.pageTranslationLanguage);
     const editorChanged = enabled !== translationEnabled || language !== translationLanguage || instant !== instantTranslation;
     const pageChanged = pageEnabled !== pageTranslationEnabled || pageLanguage !== pageTranslationLanguage;
     if (!editorChanged && !pageChanged) return;
@@ -766,7 +766,7 @@
     });
   }
   chrome.storage.onChanged.addListener(translationSettingsListener);
-  chrome.storage.local.get({ translationEnabled: false, translationLanguage: languages.defaultLanguage, instantTranslation: false, pageTranslationEnabled: false, pageTranslationLanguage: languages.defaultLanguage }).then(updateTranslationSettings).catch(() => {});
+  chrome.storage.local.get(defaults).then(updateTranslationSettings).catch(() => {});
 
   on(document, 'selectionchange', schedule);
   on(document, 'beforetoggle', event => { if (!insideUI(event)) topLayerDirty = true; }, { capture: true });

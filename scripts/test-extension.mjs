@@ -17,6 +17,7 @@ import { testPromptSettings } from './test-prompts.mjs';
 import { testTranslation } from './test-translation.mjs';
 import { testPageTranslation } from './test-page-translation.mjs';
 import { captureStoreScreenshots } from './store-screenshots.mjs';
+import { testDefaultSettings } from './test-default-settings.mjs';
 
 const extensionPath = path.resolve(process.env.EXTENSION_PATH || 'dist/extension');
 const modelPath = process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf');
@@ -74,6 +75,7 @@ try {
   });
   await page.goto(`chrome-extension://${extensionId}/workspace.html`);
   await page.waitForFunction(() => window.localEnglish?.initialized);
+  await testDefaultSettings({ page, report });
   await page.locator('#auto-check').uncheck();
   await page.waitForFunction(async () => (await chrome.storage.local.get('autoCheck')).autoCheck === false);
   assert.equal(await page.evaluate(() => crossOriginIsolated), true);

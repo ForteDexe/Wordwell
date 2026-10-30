@@ -7,6 +7,7 @@ import { createWritingTools } from '../extension/writing-tools.js';
 import { createAutoChecker } from '../extension/auto-check.js';
 import { createLanguageTools } from '../extension/languages.js';
 import { resetOutputDirectory } from './build-paths.mjs';
+import { TRANSLATION_DEFAULTS } from '../extension/settings.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = await resetOutputDirectory('extension');
@@ -18,13 +19,14 @@ await cp(path.join(root, 'NOTICE'), path.join(output, 'NOTICE'));
 const inlineSource = await readFile(path.join(root, 'extension/inline.js'), 'utf8');
 if (inlineSource.split("'__INLINE_CSS__'").length !== 2) throw new Error('Missing inline stylesheet placeholder');
 if (inlineSource.split("'__INLINE_DIFF__'").length !== 2) throw new Error('Missing inline diff placeholder');
-for (const placeholder of ['__INLINE_WRITING_TOOLS__', '__INLINE_AUTO_CHECKER__', '__INLINE_LANGUAGE_TOOLS__']) {
+for (const placeholder of ['__INLINE_WRITING_TOOLS__', '__INLINE_AUTO_CHECKER__', '__INLINE_LANGUAGE_TOOLS__', '__INLINE_DEFAULT_SETTINGS__']) {
   if (inlineSource.split(`'${placeholder}'`).length !== 2) throw new Error(`Missing ${placeholder} placeholder`);
 }
 const inlineCSS = await readFile(path.join(root, 'extension/inline.css'), 'utf8');
 await writeFile(path.join(output, 'inline.js'), inlineSource
   .replace("'__INLINE_CSS__'", () => JSON.stringify(inlineCSS))
   .replace("'__INLINE_DIFF__'", () => diffText.toString())
+  .replace("'__INLINE_DEFAULT_SETTINGS__'", () => JSON.stringify(TRANSLATION_DEFAULTS))
   .replace("'__INLINE_WRITING_TOOLS__'", () => createWritingTools.toString())
   .replace("'__INLINE_LANGUAGE_TOOLS__'", () => createLanguageTools.toString())
   .replace("'__INLINE_AUTO_CHECKER__'", () => createAutoChecker.toString()));

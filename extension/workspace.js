@@ -2,6 +2,7 @@ import { LocalModel } from './model-engine.js';
 import { savedModelInfo, savedModelFile, rememberModel, forgetModel } from './model-cache.js';
 import { setModelState } from './model-state.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, outputAllowance } from './token-budget.js';
+import { TRANSLATION_DEFAULTS } from './settings.js';
 import { languageTools } from './languages.js';
 
 const $ = id => document.getElementById(id);
@@ -28,9 +29,7 @@ let lastSelectionId = null;
 let inlineBusy = false;
 let selectedFile = null, remembered = null, fileOperation = false, initialized = false, workspaceTabId;
 let contextSize = CONTEXT_SIZE, settingsSaving = false;
-let translationEnabled = false, translationLanguage = languageTools.defaultLanguage;
-let instantTranslation = false;
-let pageTranslationEnabled = false, pageTranslationLanguage = languageTools.defaultLanguage;
+let { translationEnabled, translationLanguage, instantTranslation, pageTranslationEnabled, pageTranslationLanguage } = TRANSLATION_DEFAULTS;
 let tokenKey = '', tokenPreview = null, tokenTimer = null, tokenRunning = false;
 let promptDirty = false, promptEditorKey = null;
 const promptKey = () => JSON.stringify([model.targetLanguage, model.customPrompt]);
@@ -183,7 +182,7 @@ async function loadFile(file, { remember = true, automatic = false, reload = fal
 async function restoreRememberedModel() {
   try {
     workspaceTabId = (await chrome.tabs.getCurrent())?.id;
-    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', translationEnabled: false, translationLanguage: languageTools.defaultLanguage, instantTranslation: false, pageTranslationEnabled: false, pageTranslationLanguage: languageTools.defaultLanguage });
+    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', ...TRANSLATION_DEFAULTS });
     contextSize = normalizeContextSize(settings.contextSize) ?? CONTEXT_SIZE;
     setLanguage(settings.targetLanguage);
     setPrompt(settings.customPrompt);
@@ -324,13 +323,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.customPrompt) { setPrompt(changes.customPrompt.newValue); refresh(); }
   if (area === 'local' && (changes.translationEnabled || changes.translationLanguage || changes.instantTranslation)) {
     if (changes.translationEnabled) translationEnabled = changes.translationEnabled.newValue === true;
-    if (changes.translationLanguage) translationLanguage = languageTools.normalize(changes.translationLanguage.newValue);
-    if (changes.instantTranslation) instantTranslation = changes.instantTranslation.newValue === true;
+    if (changes.translationLanguage) translationLanguage = languageTools.normalize(changes.translationLanguage.newValue ?? TRANSLATION_DEFAULTS.translationLanguage);
+    if (changes.instantTranslation) instantTranslation = (changes.instantTranslation.newValue ?? TRANSLATION_DEFAULTS.instantTranslation) === true;
     refresh();
   }
   if (area === 'local' && (changes.pageTranslationEnabled || changes.pageTranslationLanguage)) {
     if (changes.pageTranslationEnabled) pageTranslationEnabled = changes.pageTranslationEnabled.newValue === true;
-    if (changes.pageTranslationLanguage) pageTranslationLanguage = languageTools.normalize(changes.pageTranslationLanguage.newValue);
+    if (changes.pageTranslationLanguage) pageTranslationLanguage = languageTools.normalize(changes.pageTranslationLanguage.newValue ?? TRANSLATION_DEFAULTS.pageTranslationLanguage);
     refresh();
   }
   if (area === 'local' && changes.contextSize) {

@@ -10,7 +10,7 @@ export async function testTranslation({ page, site, report }) {
   await page.locator('#auto-check').uncheck();
   assert.equal(await page.locator('#translation-enabled').isChecked(), false);
   assert.equal(await page.locator('#translation-language').isDisabled(), true);
-  assert.equal(await page.locator('#instant-translation').isChecked(), false);
+  assert.equal(await page.locator('#instant-translation').isChecked(), true);
   assert.equal(await page.locator('#instant-translation').isDisabled(), true);
   const initial = await page.evaluate(() => window.localEnglish.snapshot());
   async function select(text = 'Hello.') {
@@ -31,6 +31,9 @@ export async function testTranslation({ page, site, report }) {
   report.checks.push('Translation is off by default; selections do not start inference and disabled requests are rejected');
 
   await page.locator('#translation-enabled').check();
+  await page.waitForFunction(() => !document.getElementById('instant-translation').disabled);
+  await page.locator('#instant-translation').uncheck();
+  await page.waitForFunction(async () => (await chrome.storage.local.get('instantTranslation')).instantTranslation === false);
   await page.waitForFunction(() => !document.getElementById('translation-language').disabled);
   await page.locator('#translation-language').selectOption('es');
   await page.waitForFunction(async () => (await chrome.storage.local.get('translationLanguage')).translationLanguage === 'es');
