@@ -2,13 +2,14 @@ import { chromium } from 'playwright';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { removeTestProfile } from './browser-profile.mjs';
+import { removeTestProfile, waitForWorkspace } from './browser-profile.mjs';
 import { testWorkspaceSettings } from './test-workspace-settings.mjs';
 import { testCorrectionLanguages } from './test-languages.mjs';
 import { testPromptSettings } from './test-prompts.mjs';
 import { testTranslation } from './test-translation.mjs';
 import { testPageTranslation } from './test-page-translation.mjs';
 import { testDefaultSettings } from './test-default-settings.mjs';
+import { testBenchmark } from './test-benchmark.mjs';
 
 await mkdir('artifacts', { recursive: true });
 await mkdir('.browser-check', { recursive: true });
@@ -28,8 +29,7 @@ try {
     return route.continue();
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
-  const page = await context.newPage();
-  await page.goto(`chrome-extension://${new URL(worker.url()).host}/workspace.html`);
+  const page = await waitForWorkspace(context, new URL(worker.url()).host);
   await page.waitForFunction(() => window.localEnglish?.initialized);
   await testDefaultSettings({ page, report });
   await page.locator('#auto-check').uncheck();
@@ -42,6 +42,7 @@ try {
   await testPromptSettings({ page, report });
   await testTranslation({ page, report });
   await testPageTranslation({ page, context, report });
+  await testBenchmark({ page, report });
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(report.externalRequests, []);
   report.passed = true;

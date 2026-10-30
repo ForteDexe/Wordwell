@@ -72,12 +72,24 @@ export async function captureEditorDiagnostics(tabId, frameId = 0, hostname = 'u
 // First-party inspection entry point for the reproducible browser checks.
 globalThis.localEnglishDiagnostics = { captureEditorDiagnostics };
 
-chrome.runtime.onInstalled.addListener(() => {
+async function initializeInstallation(details) {
+  if (details.reason === 'install') {
+    const { setupOpened = false } = await chrome.storage.local.get('setupOpened');
+    if (!setupOpened) {
+      await openWorkspace();
+      await chrome.storage.local.set({ setupOpened: true });
+      return;
+    }
+  }
+  await restoreOnStartup();
+}
+
+chrome.runtime.onInstalled.addListener(details => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({ id: MENU_ID, title: 'Check with Wordwell', contexts: ['selection'] });
     chrome.contextMenus.create({ id: DIAGNOSE_ID, title: 'Wordwell: Diagnose this editor', contexts: ['editable', 'selection', 'page'] });
   });
-  restoreOnStartup().catch(error => setModelState('error', error.message));
+  initializeInstallation(details).catch(error => setModelState('error', error.message));
 });
 chrome.runtime.onStartup.addListener(() => { restoreOnStartup().catch(error => setModelState('error', error.message)); });
 chrome.tabs.onRemoved.addListener(async tabId => {

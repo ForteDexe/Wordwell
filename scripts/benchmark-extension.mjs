@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { removeTestProfile } from './browser-profile.mjs';
+import { removeTestProfile, waitForWorkspace } from './browser-profile.mjs';
 
 // Run serially in a disposable extension profile: no server or model download.
 // Compare different inputs, not just the unrealistically fast identical prompt.
@@ -46,10 +46,9 @@ try {
     return route.continue();
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
-  const page = await context.newPage();
+  const page = await waitForWorkspace(context, new URL(worker.url()).host);
   page.on('pageerror', error => report.errors.push(error.message));
   page.on('crash', () => report.errors.push('Browser page crashed'));
-  await page.goto(`chrome-extension://${new URL(worker.url()).host}/workspace.html`);
   await page.waitForFunction(() => window.localEnglish?.initialized);
   await page.locator('#auto-check').uncheck();
   await page.setInputFiles('#model-file', modelPath);

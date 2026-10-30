@@ -64,7 +64,7 @@ if (process.argv.includes('--standalone')) {
   const { mkdir, mkdtemp } = await import('node:fs/promises');
   const { createServer } = await import('node:http');
   const { default: path } = await import('node:path');
-  const { removeTestProfile } = await import('./browser-profile.mjs');
+  const { removeTestProfile, waitForWorkspace } = await import('./browser-profile.mjs');
   await mkdir('.browser-check', { recursive: true });
   const profile = await mkdtemp(path.resolve('.browser-check/extension-'));
   const extension = path.resolve('dist/extension');
@@ -75,8 +75,7 @@ if (process.argv.includes('--standalone')) {
     context = await chromium.launchPersistentContext(profile, { channel: 'chromium', headless: true,
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`] });
     const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
-    const page = await context.newPage();
-    await page.goto(`chrome-extension://${new URL(worker.url()).host}/workspace.html`);
+    const page = await waitForWorkspace(context, new URL(worker.url()).host);
     await page.waitForFunction(() => window.localEnglish?.initialized);
     await page.evaluate(() => chrome.storage.local.set({ autoCheck: false, pageTranslationEnabled: true }));
     await page.waitForFunction(() => document.getElementById('page-translation-enabled').checked);

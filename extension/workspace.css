@@ -62,6 +62,17 @@ footer { font-size: 12px; color: #6a7a72; padding: 0 3px 24px; } summary { curso
 [hidden] { display: none !important; }
 .privacy-links { margin: 0; padding: 0 3px 24px; color: #65776f; }
 .privacy-links a, #setup-privacy a { color: #18594e; text-underline-offset: 3px; }
+.benchmark-panel { font-size: 12px; color: #6a7a72; padding: 0 3px; }
+.benchmark-content { margin-top: 12px; padding: 16px; background: white; border: 1px solid #dde5df; border-radius: 10px; font-size: 14px; color: #233837; }
+.benchmark-content > p:first-child { margin-top: 0; }
+.benchmark-table { overflow-x: auto; margin-top: 14px; }
+.benchmark-table table { width: 100%; min-width: 700px; border-collapse: collapse; font-size: 13px; text-align: left; }
+.benchmark-table th, .benchmark-table td { padding: 10px; border-bottom: 1px solid #e2e9e4; vertical-align: top; white-space: pre-wrap; overflow-wrap: anywhere; }
+.benchmark-table thead th { color: #385b4c; background: #f5f9f6; }
+.benchmark-table tbody th { width: 115px; font-weight: 500; }
+.benchmark-table td:last-child { white-space: nowrap; }
+.benchmark-label { display: block; margin-top: 7px; font-size: 11px; color: #65776f; }
+.benchmark-error { color: #844423; }
 @media (max-width: 720px) { main { margin-top: 25px; padding: 0 16px; } .editors { grid-template-columns: 1fr; } section { padding: 20px; } .badge { display: none; } }
 @media (max-width: 720px) {
   .setting-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }

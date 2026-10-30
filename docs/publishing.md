@@ -47,7 +47,7 @@ All executable JS, workers, and WASM are included in the package. The external d
 
 ## Reviewer test instructions
 
-1. Use desktop Chrome 137+ and pin Wordwell. No account, API key, local server, Python, Node, or command-line launcher is needed for the installed extension.
+1. Use desktop Chrome 137+ and pin Wordwell. On first install, its setup workspace opens automatically in the foreground. No account, API key, local server, Python, Node, or command-line launcher is needed for the installed extension.
 2. Open Wordwell. Follow the model download link in Tips, select the downloaded GGUF, and click Load model. Allow disk/memory for the roughly 771 MB model and its saved copy. Wait for Ready. Read the linked privacy policy.
 3. In Original, enter `Yesterday I go to the shop and buy some milk.` Use Check text and review the correction; the source remains editable. Output can vary by model.
 4. On a normal HTTP/HTTPS website, type the same sentence in a supported text box. Pause, click an underline, use Replace, then Ctrl+Z. Chrome internal and other restricted pages are not supported.

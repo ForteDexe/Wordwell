@@ -95,6 +95,27 @@
     <p id="status" role="status" aria-live="polite">Choose a model to get started.</p>
     <p id="error" role="alert" hidden></p>
   </section>
+  <details id="benchmark-panel" class="benchmark-panel">
+    <summary>Benchmark</summary>
+    <div class="benchmark-content">
+      <p id="benchmark-note" class="small muted">Run the 16 English sample sentences with the loaded model, its active context, and the default English prompt. References are examples, not automatic grading; different wording can be correct.</p>
+      <div class="actions">
+        <button id="benchmark-run" disabled>Run 16 cases</button>
+        <button id="benchmark-stop" class="secondary" hidden>Stop</button>
+        <button id="benchmark-download" class="secondary" disabled>Download results</button>
+      </div>
+      <p id="benchmark-status" role="status" aria-live="polite">Load a model to run the benchmark.</p>
+      <p id="benchmark-meta" class="small muted" hidden></p>
+      <p id="benchmark-summary" class="small" hidden></p>
+      <p class="small muted">Stop finishes the current sentence. Results stay in this tab; Download saves a local JSON report.</p>
+      <div id="benchmark-table" class="benchmark-table" hidden>
+        <table aria-describedby="benchmark-note">
+          <thead><tr><th scope="col">Case</th><th scope="col">Original</th><th scope="col">Model correction</th><th scope="col">Example correction</th><th scope="col">Time</th></tr></thead>
+          <tbody id="benchmark-results"></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
   <footer><details><summary>Engine details</summary><pre id="diagnostics">No model loaded.</pre></details><details id="editor-diagnostics-panel"><summary>Website editor diagnostics</summary><p>Right-click inside a failing text box and choose “Wordwell: Diagnose this editor”. Reports contain editor structure and status, without your comment text.</p><button id="copy-editor-diagnostics" class="secondary" disabled>Copy diagnostics</button><button id="clear-editor-diagnostics" class="text-button" disabled>Clear reports</button><p id="editor-diagnostic-status" role="status"></p><pre id="editor-diagnostics">No reports captured.</pre></details></footer>
   <p class="privacy-links small"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="https://github.com/ForteDexe/Wordwell/issues" target="_blank" rel="noopener noreferrer">Support</a> · <a href="THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></p>
 </main>

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { testEditorDiagnostics } from './test-editor-diagnostics.mjs';
 import { testOverlayVisibility } from './test-overlay-visibility.mjs';
 import { testYouTubeGeometry } from './test-youtube-geometry.mjs';
-import { removeTestProfile } from './browser-profile.mjs';
+import { removeTestProfile, waitForWorkspace } from './browser-profile.mjs';
 
 await mkdir('artifacts', { recursive: true }); await mkdir('.browser-check', { recursive: true });
 const profile = await mkdtemp(path.resolve('.browser-check/editor-checks-'));
@@ -31,8 +31,7 @@ try {
   context.on('page', page => page.on('pageerror', error => report.pageErrors.push(error.message)));
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   const extensionId = new URL(worker.url()).host;
-  const page = await context.newPage();
-  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
+  const page = await waitForWorkspace(context, extensionId);
   await page.waitForFunction(() => window.localEnglish?.initialized);
   await page.locator('#auto-check').uncheck();
   await page.setInputFiles('#model-file', process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf'));

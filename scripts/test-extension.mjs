@@ -9,7 +9,7 @@ import { testCommentLayouts } from './test-comment-layouts.mjs';
 import { testEditorDiagnostics } from './test-editor-diagnostics.mjs';
 import { testOverlayVisibility } from './test-overlay-visibility.mjs';
 import { testYouTubeGeometry } from './test-youtube-geometry.mjs';
-import { removeTestProfile } from './browser-profile.mjs';
+import { removeTestProfile, waitForWorkspace } from './browser-profile.mjs';
 import { testTokenBudgeting } from './test-token-budget.mjs';
 import { testWorkspaceSettings } from './test-workspace-settings.mjs';
 import { testCorrectionLanguages } from './test-languages.mjs';
@@ -18,6 +18,7 @@ import { testTranslation } from './test-translation.mjs';
 import { testPageTranslation } from './test-page-translation.mjs';
 import { captureStoreScreenshots } from './store-screenshots.mjs';
 import { testDefaultSettings } from './test-default-settings.mjs';
+import { testBenchmark } from './test-benchmark.mjs';
 
 const extensionPath = path.resolve(process.env.EXTENSION_PATH || 'dist/extension');
 const modelPath = process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf');
@@ -67,14 +68,19 @@ try {
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 30000 });
   const extensionId = new URL(worker.url()).host;
   report.extensionId = extensionId;
-  page = await context.newPage();
+  page = await waitForWorkspace(context, extensionId);
   page.on('pageerror', error => report.pageErrors.push(error.message));
   page.on('console', message => {
     if (message.type() === 'error') { report.consoleErrors.push(message.text().slice(0, 1500)); console.error(message.text().slice(0, 1500)); }
     if (message.type() === 'warning') report.chromeWarnings.push(message.text());
   });
-  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
   await page.waitForFunction(() => window.localEnglish?.initialized);
+  const installed = await worker.evaluate(async () => {
+    const tabs = await chrome.runtime.getContexts({ contextTypes: ['TAB'], documentUrls: [chrome.runtime.getURL('workspace.html')] });
+    return { count: tabs.length, active: tabs[0]?.tabId >= 0 ? (await chrome.tabs.get(tabs[0].tabId)).active : false };
+  });
+  assert.deepEqual(installed, { count: 1, active: true });
+  report.checks.push('First install automatically opens one foreground setup workspace before a model is selected');
   await testDefaultSettings({ page, report });
   await page.locator('#auto-check').uncheck();
   await page.waitForFunction(async () => (await chrome.storage.local.get('autoCheck')).autoCheck === false);
@@ -432,6 +438,7 @@ try {
   await testPromptSettings({ page, report });
   await testTranslation({ page, site, report });
   await testPageTranslation({ page, site, context, report });
+  await testBenchmark({ page, report });
   if (process.env.RELEASE_SCREENSHOTS) await captureStoreScreenshots({ context, page, site, fixtureOrigin, report });
   await page.bringToFront();
   await page.click('#unload');

@@ -4,6 +4,7 @@ import { setModelState } from './model-state.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, outputAllowance } from './token-budget.js';
 import { TRANSLATION_DEFAULTS } from './settings.js';
 import { languageTools } from './languages.js';
+import { createBenchmark } from './benchmark.js';
 
 const $ = id => document.getElementById(id);
 $('gpu-settings').addEventListener('click', async event => {
@@ -27,6 +28,7 @@ let result = null;
 let pendingSelection = null;
 let lastSelectionId = null;
 let inlineBusy = false;
+let benchmark = null;
 let selectedFile = null, remembered = null, fileOperation = false, initialized = false, workspaceTabId;
 let contextSize = CONTEXT_SIZE, settingsSaving = false;
 let { translationEnabled, translationLanguage, instantTranslation, pageTranslationEnabled, pageTranslationLanguage } = TRANSLATION_DEFAULTS;
@@ -71,7 +73,7 @@ function refreshTokenCount() {
   }
   counter.textContent = `… / ${activeContext.toLocaleString()} prompt tokens`;
   counter.title = 'Counting with your loaded model. Counts wait while a check is running.';
-  if (model.busy || fileOperation || tokenTimer || tokenRunning) return;
+  if (model.busy || fileOperation || benchmark?.running || tokenTimer || tokenRunning) return;
   tokenTimer = setTimeout(async () => {
     tokenTimer = null; tokenRunning = true;
     try {
@@ -88,7 +90,7 @@ function showError(error) {
 }
 function clearError() { $('error').hidden = true; $('error').textContent = ''; }
 function refresh() {
-  const busy = model.busy || fileOperation || settingsSaving || !initialized;
+  const busy = model.busy || benchmark?.running || fileOperation || settingsSaving || !initialized;
   $('load').disabled = busy || Boolean(model.runtime) || !selectedFile;
   $('unload').disabled = busy || !model.runtime;
   $('model-file').disabled = busy || Boolean(model.runtime);
@@ -130,6 +132,7 @@ function refresh() {
   $('model-state').textContent = busy ? 'Working…' : model.ready ? 'Ready' : 'Not loaded';
   $('model-state').classList.toggle('ready', model.ready && !busy);
   $('diagnostics').textContent = JSON.stringify({ ...model.info, loadCount: model.loadCount, contextRequested: contextSize, targetLanguage: model.targetLanguage, isolated: crossOriginIsolated }, null, 2);
+  benchmark?.refresh();
 }
 function clearResult() { result = null; $('corrected').value = ''; $('result-meta').textContent = 'Review the suggestion before using it.'; }
 function setLanguage(value) {
@@ -142,7 +145,7 @@ function setPrompt(value) {
 }
 function useSelection(selection) {
   if (!selection || selection.id === lastSelectionId) return;
-  if (model.busy) { pendingSelection = selection; refresh(); return; }
+  if (model.busy || benchmark?.running) { pendingSelection = selection; refresh(); return; }
   lastSelectionId = selection.id; pendingSelection = null;
   $('original').value = selection.text;
   clearResult(); clearError();
@@ -368,7 +371,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (translating && !enabled) { respond({ error: 'Enable this translation option in Settings first.', code: 'translation-disabled' }); return false; }
   if (translating && languageTools.normalize(message.language) !== language) { respond({ error: 'Translation language changed. Please try again.', code: 'superseded' }); return false; }
   if (!model.ready) { respond({ error: 'Load your model in Wordwell first, then try the icon again.', code: 'model-not-loaded' }); return false; }
-  if (model.busy) { respond({ error: 'The model is checking another passage. Please try again in a moment.', code: 'engine-busy' }); return false; }
+  if (model.busy || benchmark?.running) { respond({ error: benchmark?.running ? 'The benchmark is running. Please try again when it finishes.' : 'The model is checking another passage. Please try again in a moment.', code: 'engine-busy' }); return false; }
   // The workspace is also an inline-test surface. Keep its text box editable
   // and focused during an inline request, just like a normal webpage field.
   inlineBusy = true;
@@ -395,6 +398,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
 });
 
 // First-party diagnostics used by the reproducible browser test.
-window.localEnglish = { model, get initialized() { return initialized; }, snapshot: () => ({ info: model.info, loadCount: model.loadCount, checkCount: model.checkCount, ready: model.ready, busy: model.busy || fileOperation, initialized, remembered, result, logs: model.logs }) };
+benchmark = createBenchmark({ model, canStart: () => initialized && model.ready && !model.busy && !fileOperation && !settingsSaving && !inlineBusy, onRunningChange: refresh });
+window.localEnglish = { model, get initialized() { return initialized; }, get benchmark() { return benchmark.snapshot(); }, snapshot: () => ({ info: model.info, loadCount: model.loadCount, checkCount: model.checkCount, ready: model.ready, busy: model.busy || benchmark.running || fileOperation, initialized, remembered, result, logs: model.logs }) };
 refresh();
 restoreRememberedModel();

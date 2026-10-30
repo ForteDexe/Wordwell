@@ -16,6 +16,7 @@ await cp(path.join(root, 'docs/privacy.html'), path.join(output, 'privacy.html')
 await cp(path.join(root, 'docs/privacy.css'), path.join(output, 'privacy.css'));
 await cp(path.join(root, 'LICENSE'), path.join(output, 'LICENSE'));
 await cp(path.join(root, 'NOTICE'), path.join(output, 'NOTICE'));
+await cp(path.join(root, 'engine-test/cases.json'), path.join(output, 'benchmark-cases.json'));
 const inlineSource = await readFile(path.join(root, 'extension/inline.js'), 'utf8');
 if (inlineSource.split("'__INLINE_CSS__'").length !== 2) throw new Error('Missing inline stylesheet placeholder');
 if (inlineSource.split("'__INLINE_DIFF__'").length !== 2) throw new Error('Missing inline diff placeholder');

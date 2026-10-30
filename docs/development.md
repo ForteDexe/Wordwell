@@ -22,6 +22,7 @@ npm run test:budget
 npm run test:diff
 npm run test:package
 npm run test:selection-drag
+npm run test:install
 npm run test:workspace
 npm run test:extension
 ```

@@ -9,6 +9,7 @@ A Chrome extension for grammar correction and translation, powered by a model ru
 - **Translate text boxes** with a preview or optional instant replacement.
 - **Translate selected page text** and copy the result.
 - **Make it yours** with language settings, editable prompts, and a remembered local model.
+- **Benchmark models** with a built-in 16-sentence English test and downloadable results.
 
 [Get started](docs/getting-started.md) · [Development](docs/development.md) · [Privacy](docs/privacy.html) · [Support](https://github.com/ForteDexe/Wordwell/issues)
 

@@ -35,7 +35,7 @@ export function validatePackage(files, version) {
   }
   const manifest = JSON.parse(Buffer.from(requireFile('manifest.json')).toString());
   if (manifest.manifest_version !== 3 || manifest.name !== 'Wordwell' || manifest.version !== version) throw new Error('Release manifest does not match the package name and version.');
-  for (const name of ['workspace.html', 'workspace.js', 'inline.js', 'settings.js', 'privacy.html', 'privacy.css', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt',
+  for (const name of ['workspace.html', 'workspace.js', 'inline.js', 'settings.js', 'benchmark.js', 'benchmark-cases.json', 'privacy.html', 'privacy.css', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt',
     'licenses/harper-LICENSE.txt', 'vendor/LICENSE', 'vendor/LLAMA-LICENSE', 'vendor/index.js',
     'vendor/main-worker.js', 'vendor/pthread-worker.js', 'vendor/opfs-worker.js', 'vendor/wasm/wllama.wasm']) requireFile(name);
   for (const paths of [manifest.icons, manifest.action?.default_icon]) {
