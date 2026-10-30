@@ -50,6 +50,14 @@ test('an oversized sentence splits at commas as the last fallback', async () => 
   assert.equal(original(plan), text);
 });
 
+test('full-width periods and commas split oversized unspaced text without losing punctuation', async () => {
+  const text = '甲'.repeat(55) + '，' + '乙'.repeat(55) + '。';
+  const plan = await planCorrection(text, count, 256);
+  assert.equal(chunks(plan).length, 2);
+  assert.ok(chunks(plan).every(part => part.level === 3));
+  assert.equal(original(plan), text);
+});
+
 test('mixed depths keep their source order and every separator', async () => {
   const a = 'a'.repeat(55), b = 'b'.repeat(55);
   const text = `${a}. ${b}.\n\n${a}, ${b}.\r\nshort`;

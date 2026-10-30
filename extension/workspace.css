@@ -18,6 +18,14 @@ input::file-selector-button { border: 1px solid #ccd9d0; border-radius: 5px; pad
 .auto-setting { display: flex; align-items: center; gap: 8px; margin: 12px 0 3px; font-weight: 400; }
 .auto-setting input { accent-color: #18594e; width: 16px; height: 16px; }
 .context-setting { margin-top: 20px; }
+.language-setting { margin-top: 20px; }
+.language-setting select { max-width: 100%; border: 1px solid #cbd8d0; border-radius: 7px; padding: 9px 12px; font: inherit; color: #273d34; background: white; }
+.language-setting select:focus-visible { outline: 2px solid #409076; outline-offset: 3px; }
+.prompt-setting { margin-top: 20px; }
+.prompt-setting summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.prompt-setting label { margin-top: 12px; }
+.prompt-setting textarea { min-height: 150px; font-size: 14px; }
+#prompt-status { margin-left: 8px; }
 .context-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .context-controls input { width: 150px; max-width: 100%; border: 1px solid #cbd8d0; border-radius: 7px; padding: 9px 12px; font: inherit; color: #273d34; background: white; }
 .context-controls input:focus-visible { outline: 2px solid #409076; outline-offset: 3px; }

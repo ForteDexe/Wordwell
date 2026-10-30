@@ -1,7 +1,7 @@
 // Shared by ordinary website fields and the extension's workspace. This
 // function is statically bundled; no remote scripts or runtime eval are used.
 export function createAutoChecker(api) {
-  const { on, element, button, send, valid, editableTarget, eventEditableTarget, focusedEditableTarget, onEditorFocus, editorText, editorSnapshot, editorRects, trackEditorVisibility, refreshEditorVisibility, raiseUI, insideUI, controlLayout, probeSelection, tools, ui, openSuggestion, hideSuggestion } = api;
+  const { on, element, button, send, valid, editableTarget, eventEditableTarget, focusedEditableTarget, onEditorFocus, editorText, editorSnapshot, editorRects, trackEditorVisibility, refreshEditorVisibility, raiseUI, insideUI, controlLayout, probeSelection, tools, languages, settingsChanged, ui, openSuggestion, hideSuggestion } = api;
   const { host, root } = ui();
   const records = new WeakMap();
   const underlines = element('div', 'auto-underlines');
@@ -19,6 +19,8 @@ export function createAutoChecker(api) {
   root.append(underlines, indicator);
   let enabled = true, settingsReady = false, active = null, pending = null, running = null;
   let timer = null, drawing = 0, stopped = false, composing = false;
+  let targetLanguage = languages.defaultLanguage;
+  let customPrompt = '';
   let inputs = 0, mutationsDetected = 0, lastChange = null, lastPump = 'not-started';
   const observer = new ResizeObserver(layoutChanged);
   const mutations = new MutationObserver(layoutChanged);
@@ -30,9 +32,14 @@ export function createAutoChecker(api) {
   function recordFor(target) {
     if (!records.has(target)) {
       const value = editorText(target).text;
-      records.set(target, { target, value, baseText: value, dirty: false, version: 0, phase: 'idle', results: [], cache: new Map(), ignored: new Set(), error: null });
+      records.set(target, { target, language: targetLanguage, promptOverride: customPrompt, value, baseText: value, dirty: false, version: 0, phase: 'idle', results: [], cache: new Map(), ignored: new Set(), error: null });
     }
-    return records.get(target);
+    const record = records.get(target);
+    if (record.language !== targetLanguage || record.promptOverride !== customPrompt) {
+      record.language = targetLanguage; record.promptOverride = customPrompt; record.version++; record.cache.clear(); record.ignored.clear(); record.results = [];
+      record.baseText = ''; record.dirty = true; record.languageDirty = true; record.phase = 'idle'; record.error = null;
+    }
+    return record;
   }
   function activate(target) {
     if ((active?.target || null) === target) return;
@@ -45,6 +52,7 @@ export function createAutoChecker(api) {
       observer.observe(target);
       mutations.observe(target, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'contenteditable', 'readonly', 'disabled'] });
     }
+    if (active?.languageDirty && enabled && settingsReady && !composing) schedule(active);
     drawSoon();
   }
   function schedule(record, delay = 1200) {
@@ -88,11 +96,12 @@ export function createAutoChecker(api) {
     if (stopped || running || timer || !enabled || !settingsReady || !pending || document.hidden || composing) return;
     const record = pending; pending = null;
     if (record !== active || !editableTarget(record.target) || !record.target.isConnected) return;
+    record.languageDirty = false;
     const value = textAt(record), version = record.version;
     const change = tools.changedRange(record.baseText, value);
-    const all = tools.passages(value);
+    const all = tools.passages(value, targetLanguage);
     const wanted = all.filter(passage => record.cache.has(passage.text) || (passage.end >= change.start && passage.start <= change.end));
-    const candidates = wanted.filter(passage => (passage.text.match(/\p{L}+/gu)?.length || 0) >= (/[.!?]$/.test(passage.text) ? 2 : 3));
+    const candidates = wanted.filter(passage => tools.eligible(passage.text, targetLanguage));
     lastPump = candidates.length ? 'checking' : 'no-eligible-passage';
     if (!candidates.length) { record.phase = 'idle'; drawSoon(); return; }
     running = record; record.phase = 'checking'; record.results = []; record.error = null; drawSoon();
@@ -111,6 +120,7 @@ export function createAutoChecker(api) {
             if (response?.code !== 'superseded') record.error = response || { error: 'The model did not respond. Click to try again.' };
             break;
           }
+          if (response.result.language !== targetLanguage || response.result.promptOverride !== customPrompt) { schedule(record, 1000); return; }
           corrected = response.result.corrected;
           record.cache.set(passage.text, corrected);
           if (record.cache.size > 40) record.cache.delete(record.cache.keys().next().value);
@@ -211,9 +221,29 @@ export function createAutoChecker(api) {
     } else if (active?.dirty && !composing) schedule(active);
     drawSoon();
   }
-  const settingsListener = (changes, area) => { if (area === 'local' && changes.autoCheck) setEnabled(changes.autoCheck.newValue); };
+  function setCorrectionSettings(value, prompt) {
+    const next = languages.normalize(value);
+    const nextPrompt = languages.normalizePrompt(prompt);
+    if (next === targetLanguage && nextPrompt === customPrompt) return;
+    targetLanguage = next; customPrompt = nextPrompt;
+    clearTimeout(timer); timer = null; pending = null; cancelQueued(); settingsChanged();
+    if (active) {
+      recordFor(active.target);
+      if (enabled && settingsReady && !composing) schedule(active);
+    }
+    drawSoon();
+  }
+  const settingsListener = (changes, area) => {
+    if (area !== 'local') return;
+    if (changes.targetLanguage || changes.customPrompt) setCorrectionSettings(
+      changes.targetLanguage ? changes.targetLanguage.newValue : targetLanguage,
+      changes.customPrompt ? changes.customPrompt.newValue : customPrompt);
+    if (changes.autoCheck) setEnabled(changes.autoCheck.newValue);
+  };
   chrome.storage.onChanged.addListener(settingsListener);
-  chrome.storage.local.get({ autoCheck: true }).then(({ autoCheck }) => { if (!stopped) setEnabled(autoCheck); }).catch(() => { if (!stopped) setEnabled(false); });
+  chrome.storage.local.get({ autoCheck: true, targetLanguage: languages.defaultLanguage, customPrompt: '' }).then(({ autoCheck, targetLanguage, customPrompt }) => {
+    if (!stopped) { setCorrectionSettings(targetLanguage, customPrompt); setEnabled(autoCheck); }
+  }).catch(() => { if (!stopped) setEnabled(false); });
   onEditorFocus(event => { if (outside(event)) activate(eventEditableTarget(event)); });
   on(window, 'input', input, { capture: true });
   on(window, 'compositionstart', event => {
@@ -225,6 +255,7 @@ export function createAutoChecker(api) {
   on(window, 'compositionend', event => { composing = false; input(event); }, { capture: true });
   on(document, 'visibilitychange', () => {
     if (document.hidden) { clearTimeout(timer); timer = null; pending = null; cancelQueued(); }
+    else if (active?.languageDirty && enabled && settingsReady && !composing) schedule(active);
     drawSoon();
   });
   on(window, 'scroll', layoutChanged, { capture: true, passive: true });
@@ -235,6 +266,8 @@ export function createAutoChecker(api) {
   // changes and editors that swallow/non-compose their own input events.
   const poll = setInterval(synchronize, 400);
   return {
+    language: () => targetLanguage,
+    prompt: () => customPrompt,
     refreshLayout: drawSoon,
     navigation(snapshot) {
       const { results, index } = navigationFor(snapshot);
@@ -247,7 +280,7 @@ export function createAutoChecker(api) {
       return next ? show(next, true) : false;
     },
     diagnostics() {
-      return { enabled, settingsReady, inputs, mutationsDetected, composing, lastChange, lastPump,
+      return { enabled, settingsReady, targetLanguage, inputs, mutationsDetected, composing, lastChange, lastPump,
         active: Boolean(active), phase: active?.phase || null, sourceLength: active?.value.length ?? null,
         dirty: active?.dirty ?? null, timerPending: Boolean(timer), pending: Boolean(pending), running: Boolean(running),
         suggestions: active?.results.length || 0, renderedUnderlines: underlines.childElementCount,

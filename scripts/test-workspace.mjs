@@ -4,6 +4,8 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { removeTestProfile } from './browser-profile.mjs';
 import { testWorkspaceSettings } from './test-workspace-settings.mjs';
+import { testCorrectionLanguages } from './test-languages.mjs';
+import { testPromptSettings } from './test-prompts.mjs';
 
 await mkdir('artifacts', { recursive: true });
 await mkdir('.browser-check', { recursive: true });
@@ -32,6 +34,8 @@ try {
   await page.waitForFunction(() => window.localEnglish.model.ready || !document.getElementById('error').hidden, undefined, { timeout: 180000 });
   assert.equal(await page.evaluate(() => window.localEnglish.model.ready), true);
   await testWorkspaceSettings({ page, report });
+  await testCorrectionLanguages({ page, report });
+  await testPromptSettings({ page, report });
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(report.externalRequests, []);
   report.passed = true;

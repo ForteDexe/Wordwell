@@ -51,6 +51,17 @@ test('sentence offsets preserve exact Unicode text and paragraph boundaries', ()
   assert.deepEqual(passages.map(passage => passage.text), ['He go home.', 'I like cafés 😊!', 'Last line.']);
   for (const passage of passages) assert.equal(text.slice(passage.start, passage.end), passage.text);
 });
+
+test('unspaced Japanese and Chinese sentences remain eligible for automatic checks', () => {
+  for (const [language, text] of [['ja', '私は学生です。彼は先生です。'], ['zh-CN', '我昨天去商店买牛奶。我今天在家里学习。']]) {
+    const passages = writing.passages(text, language);
+    assert.equal(passages.length, 2);
+    for (const passage of passages) {
+      assert.equal(text.slice(passage.start, passage.end), passage.text);
+      assert.equal(writing.eligible(passage.text, language), true);
+    }
+  }
+});
 test('changed range identifies insertions and deletions in the latest text', () => {
   assert.deepEqual(writing.changedRange('One. He go home.', 'One. He goes home.'), { start: 10, end: 12 });
   assert.deepEqual(writing.changedRange('One. He go home.', 'One. He home.'), { start: 8, end: 8 });

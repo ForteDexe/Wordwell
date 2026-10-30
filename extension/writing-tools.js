@@ -1,8 +1,8 @@
 // Self-contained for static bundling into the content script.
 export function createWritingTools(diffText) {
-  function passages(text) {
+  function passages(text, language = 'en') {
     const result = [];
-    const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
+    const segmenter = new Intl.Segmenter(language, { granularity: 'sentence' });
     let offset = 0;
     for (const line of text.split('\n')) {
       for (const { segment, index } of segmenter.segment(line)) {
@@ -12,6 +12,12 @@ export function createWritingTools(diffText) {
       offset += line.length + 1;
     }
     return result;
+  }
+  function eligible(text, language = 'en') {
+    const words = /^(zh|ja|ko)(-|$)/.test(language)
+      ? [...new Intl.Segmenter(language, { granularity: 'word' }).segment(text)].filter(segment => segment.isWordLike).length
+      : (text.match(/\p{L}+/gu)?.length || 0);
+    return words >= (/[.!?。！？]$/.test(text) ? 2 : 3);
   }
   function changedRange(before, after) {
     let start = 0;
@@ -63,5 +69,5 @@ export function createWritingTools(diffText) {
     }
     return result.filter(edit => edit.original !== edit.replacement);
   }
-  return { passages, changedRange, edits };
+  return { passages, eligible, changedRange, edits };
 }

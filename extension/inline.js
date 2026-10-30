@@ -4,6 +4,7 @@
   const diffText = '__INLINE_DIFF__';
   const createWritingTools = '__INLINE_WRITING_TOOLS__';
   const createAutoChecker = '__INLINE_AUTO_CHECKER__';
+  const createLanguageTools = '__INLINE_LANGUAGE_TOOLS__';
   const events = new AbortController();
   let host, root, trigger, panel, current = null;
   let requestVersion = 0, frame = 0, destroyed = false, observer;
@@ -246,6 +247,7 @@
   function readSelection() {
     const target = deepActiveElement();
     if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) {
+      if (!editableTarget(target)) return null;
       if (target instanceof HTMLInputElement && !['text', 'search', 'url', 'tel'].includes(target.type)) return null;
       if (target.disabled || target.readOnly || target.selectionStart == null || target.selectionEnd <= target.selectionStart) return null;
       const text = target.value.slice(target.selectionStart, target.selectionEnd);
@@ -432,12 +434,15 @@
       if (snapshot.kind === 'plain') snapshot.target.setSelectionRange(snapshot.start, snapshot.end);
       else restoreRange(snapshot.target, snapshot.range);
     }
-    const version = ++requestVersion;
+    const version = ++requestVersion, language = automatic.language(), promptOverride = automatic.prompt();
     render('loading', snapshot);
     try {
       const response = await send({ type: 'inline-correct', text: snapshot.text });
       if (destroyed || version !== requestVersion) return;
       if (!valid(snapshot)) { hide(); return; }
+      if (response?.result && (response.result.language !== language || response.result.promptOverride !== promptOverride)) {
+        render('error', snapshot, { error: 'Correction settings changed. Please try again.' }); return;
+      }
       render(response?.result ? 'result' : 'error', snapshot, response || { error: 'The model workspace did not respond. Please try again.' });
     } catch (error) {
       if (!destroyed && version === requestVersion) {
@@ -449,6 +454,7 @@
 
   function editableTarget(node) {
     if (!(node instanceof Element)) return null;
+    if (node.closest('[data-local-english-ignore]')) return null;
     if (node instanceof HTMLTextAreaElement || node instanceof HTMLInputElement) {
       if (node.disabled || node.readOnly || (node instanceof HTMLInputElement && !['text', 'search', 'url', 'tel'].includes(node.type))) return null;
       return node;
@@ -603,6 +609,8 @@
     probeSelection: scan,
     onEditorFocus: listener => { componentFocusListener = listener; on(window, 'focusin', listener, { capture: true }); },
     tools: createWritingTools(diffText),
+    languages: createLanguageTools(),
+    settingsChanged: () => { requestVersion++; hide(); schedule(); },
     ui: () => { ensureUI(); return { host, root }; },
     openSuggestion: (snapshot, corrected, reveal) => {
       hide(); current = snapshot;

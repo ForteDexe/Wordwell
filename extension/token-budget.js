@@ -19,7 +19,7 @@ export function outputAllowance(textTokens) {
 // Keep punctuation with its clause, and separators verbatim outside inference.
 // A level is only used when its parent cannot fit: newline -> period -> comma.
 function sections(text, level) {
-  const pattern = [/\r\n|\r|\n/g, /\.[ \t]*/g, /,[ \t]*/g][level];
+  const pattern = [/\r\n|\r|\n/g, /[.。][ \t]*/g, /[,，、][ \t]*/g][level];
   const result = [];
   let start = 0;
   for (const match of text.matchAll(pattern)) {

@@ -1,8 +1,9 @@
 import { Wllama } from './vendor/index.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, MAX_TEXT_LENGTH, planCorrection } from './token-budget.js';
+import { languageTools } from './languages.js';
 
 export { CONTEXT_SIZE };
-export const INSTRUCTION = 'Correct the English grammar, spelling, and sentence structure with minimal edits. Preserve the original meaning. If the text is already correct, return it unchanged. Return only the corrected text, without explanations or quotation marks.';
+export const INSTRUCTION = languageTools.instruction(languageTools.defaultLanguage);
 
 export class LocalModel {
   constructor(onStatus) {
@@ -15,6 +16,8 @@ export class LocalModel {
     this.checkCount = 0;
     this.logs = [];
     this.tokenCountTask = Promise.resolve();
+    this.targetLanguage = languageTools.defaultLanguage;
+    this.customPrompt = '';
   }
 
   log(level, ...values) {
@@ -72,19 +75,21 @@ export class LocalModel {
     } finally { this.busy = false; }
   }
 
-  chatRequest(text) {
-    return { messages: [{ role: 'system', content: INSTRUCTION }, { role: 'user', content: text }],
+  chatRequest(text, language = this.targetLanguage, customPrompt = this.customPrompt) {
+    return { messages: [{ role: 'system', content: languageTools.normalizePrompt(customPrompt) || languageTools.instruction(language) }, { role: 'user', content: text }],
       chat_template_kwargs: { enable_thinking: false } };
   }
 
   async countTokens(text) {
     if (!this.ready || this.busy) return null;
     const runtime = this.runtime;
+    const language = this.targetLanguage;
+    const customPrompt = this.customPrompt;
     // Serialize previews with each other. Inference and unload wait for the
     // current preview; queued previews yield when either operation starts.
     const task = this.tokenCountTask.catch(() => {}).then(() => {
-      if (!this.ready || this.busy || this.runtime !== runtime) return null;
-      return runtime.countChatTokens(this.chatRequest(text.trim()));
+      if (!this.ready || this.busy || this.runtime !== runtime || this.targetLanguage !== language || this.customPrompt !== customPrompt) return null;
+      return runtime.countChatTokens(this.chatRequest(text.trim(), language, customPrompt));
     });
     this.tokenCountTask = task;
     return task;
@@ -96,19 +101,25 @@ export class LocalModel {
     if (!text.trim()) throw new Error('Enter a sentence or a short paragraph.');
     if (text.length > MAX_TEXT_LENGTH) throw new Error('Please check a shorter section (up to 50,000 characters).');
     this.busy = true;
+    const language = this.targetLanguage;
+    const customPrompt = this.customPrompt;
     const started = performance.now();
     try {
       await this.tokenCountTask.catch(() => {});
       this.checkCount += 1;
       const contextSize = this.info.context;
-      const plan = await planCorrection(text, value => this.runtime.countChatTokens(this.chatRequest(value)), contextSize);
+      if (customPrompt) {
+        const base = await this.runtime.countChatTokens(this.chatRequest('', language, customPrompt));
+        if (base.prompt_tokens + 128 + CONTEXT_MARGIN >= contextSize) throw new Error('The correction prompt leaves too little context. Shorten it or increase the context size.');
+      }
+      const plan = await planCorrection(text, value => this.runtime.countChatTokens(this.chatRequest(value, language, customPrompt)), contextSize);
       const chunks = plan.filter(part => part.text !== undefined);
       const output = [], budget = [], usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
       for (const part of plan) {
         if (part.literal !== undefined) { output.push(part.literal); continue; }
         if (chunks.length > 1) this.onStatus(`Checking section ${budget.length + 1} of ${chunks.length}…`);
         const response = await this.runtime.createChatCompletion({
-          ...this.chatRequest(part.text), temperature: 0, seed: 42, max_tokens: part.maxTokens, top_p: 1, top_k: 1,
+          ...this.chatRequest(part.text, language, customPrompt), temperature: 0, seed: 42, max_tokens: part.maxTokens, top_p: 1, top_k: 1,
           repeat_penalty: 1, presence_penalty: 0, cache_prompt: false,
         });
         if (response.usage?.prompt_tokens !== part.promptTokens) throw new Error('The prompt token count changed. No correction was applied. Please try again.');
@@ -119,7 +130,7 @@ export class LocalModel {
         budget.push({ promptTokens: part.promptTokens, textTokens: part.textTokens, maxOutputTokens: part.maxTokens, completionTokens: response.usage.completion_tokens, splitLevel: part.level });
         for (const key of Object.keys(usage)) usage[key] += response.usage[key] || 0;
       }
-      return { original: text, corrected: output.join(''), seconds: (performance.now() - started) / 1000, usage,
+      return { original: text, corrected: output.join(''), language, promptOverride: customPrompt, seconds: (performance.now() - started) / 1000, usage,
         budget: { context: contextSize, safetyMargin: CONTEXT_MARGIN, chunks: budget } };
     } finally { this.busy = false; }
   }
