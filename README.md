@@ -81,6 +81,8 @@ Chrome on Windows currently ignores the WebGPU `powerPreference` hint. The app o
 
 ## Standalone engine test
 
+For extension performance measurements and the optional NVIDIA startup launcher, see [Performance experiments](docs/performance.md). The measured improvement on this laptop came from selecting the faster GPU; the model and correction instruction stayed the same.
+
 A separate browser benchmark for the local model engine. Use it to compare model quality or backends without loading the extension.
 
 ## Run on Windows

@@ -1,7 +1,7 @@
 import { Wllama } from './vendor/index.js';
 
 export const CONTEXT_SIZE = 1024;
-const INSTRUCTION = 'Correct the English grammar, spelling, and sentence structure with minimal edits. Preserve the original meaning. If the text is already correct, return it unchanged. Return only the corrected text, without explanations or quotation marks.';
+export const INSTRUCTION = 'Correct the English grammar, spelling, and sentence structure with minimal edits. Preserve the original meaning. If the text is already correct, return it unchanged. Return only the corrected text, without explanations or quotation marks.';
 
 export class LocalModel {
   constructor(onStatus) {

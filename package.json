@@ -9,7 +9,8 @@
     "build:extension": "node scripts/build-extension.mjs",
     "test:diff": "node --test scripts/text-diff.test.mjs",
     "test:extension": "node scripts/test-extension.mjs",
-    "test:editors": "node scripts/test-editor-checks.mjs"
+    "test:editors": "node scripts/test-editor-checks.mjs",
+    "benchmark:extension": "node scripts/benchmark-extension.mjs"
   },
   "dependencies": {
     "@wllama/wllama": "3.8.1"

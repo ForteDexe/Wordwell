@@ -31,7 +31,8 @@ async function launchProfile() {
   const browserContext = await chromium.launchPersistentContext(profile, {
     channel: 'chromium', headless: !process.env.HEADED,
     viewport: { width: 1280, height: 1000 },
-    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`,
+      ...(process.env.PERF_GPU_PREFERENCE === 'high' ? ['--force-high-performance-gpu', '--use-webgpu-power-preference=force-high-performance'] : [])],
   });
   await browserContext.route('**/*', route => {
     const url = new URL(route.request().url());
