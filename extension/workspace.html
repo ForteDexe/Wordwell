@@ -10,6 +10,11 @@
 <body>
 <main>
   <header><div class="brand"><span class="mark" aria-hidden="true">Aa</span><div><h1>Local English</h1><p>A little help with your English, on your computer.</p></div></div><span class="badge">Local model · 1k context</span></header>
+  <aside class="performance-tip" aria-label="Performance tip">
+    <strong>Speed tip for Windows</strong>
+    <p>If your PC has a dedicated GPU, you may get faster checks: <a id="gpu-settings" href="chrome://flags/#force-high-performance-gpu" target="_blank" rel="noopener">open Chrome's GPU setting</a>, set <strong>Force High Performance GPU</strong> to <strong>Enabled</strong>, then relaunch Chrome. This applies to all Chrome tabs and may use more battery.</p>
+    <p id="gpu-tip-status" role="status" hidden></p>
+  </aside>
   <section class="model-card" aria-labelledby="model-heading">
     <div class="model-title"><h2 id="model-heading">Your model</h2><span id="model-state" class="state">Not loaded</span></div>
     <div class="model-controls"><label class="file-label">Choose a GGUF file<input id="model-file" type="file" accept=".gguf"></label><button id="load" disabled>Load model</button><button id="unload" class="secondary" disabled>Unload</button><button id="forget" class="secondary" disabled>Forget model</button></div>

@@ -39,6 +39,26 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
 
   await host.getByRole('button', { name: 'Review correction: go → went', exact: true }).click();
   assert.equal(await host.locator('.correction').innerText(), 'went');
+  const previous = host.getByRole('button', { name: 'Previous suggestion', exact: true });
+  const next = host.getByRole('button', { name: 'Next suggestion', exact: true });
+  assert.equal(await host.locator('.workspace-link').count(), 0);
+  assert.equal(await host.locator('.suggestion-position').innerText(), '1 / 2');
+  assert.equal(await previous.isDisabled(), true);
+  assert.equal(await next.isEnabled(), true);
+  await next.click();
+  assert.equal(await host.locator('.correction').innerText(), 'bought');
+  assert.equal(await host.locator('.suggestion-position').innerText(), '2 / 2');
+  assert.equal(await next.isDisabled(), true);
+  assert.equal(await previous.isEnabled(), true);
+  assert.equal(await previous.evaluate(node => node.getRootNode().activeElement === node), true);
+  await previous.press('Enter');
+  assert.equal(await host.locator('.correction').innerText(), 'went');
+  assert.equal(await host.locator('.suggestion-position').innerText(), '1 / 2');
+  assert.equal(await next.evaluate(node => node.getRootNode().activeElement === node), true);
+  assert.equal(await field.inputValue(), sentence);
+  assert.equal(await count(), baseline + 1, 'Navigating suggestions must reuse the existing results');
+  report.checks.push('Previous/next arrows navigate existing suggestions with a position count, endpoint states, and keyboard focus');
+  report.checks.push('Suggestion navigation leaves the draft unchanged and runs no additional inference; the card Aa button is removed');
   await site.screenshot({ path: 'artifacts/automatic-suggestion.png', fullPage: true });
   await host.getByRole('button', { name: 'Replace', exact: true }).click();
   assert.equal(await field.inputValue(), 'Yesterday I went to the shop and buy some milk.');
@@ -47,6 +67,9 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
   assert.equal(await count(), baseline + 2);
   assert.equal(await marks.count(), 1);
   await host.getByRole('button', { name: 'Review correction: buy → bought', exact: true }).click();
+  assert.equal(await host.locator('.suggestion-position').innerText(), '1 / 1');
+  assert.equal(await previous.isDisabled(), true);
+  assert.equal(await next.isDisabled(), true);
   await host.getByRole('button', { name: 'Ignore', exact: true }).click();
   await marks.waitFor({ state: 'hidden' });
   assert.equal(await marks.count(), 0);
@@ -173,6 +196,30 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
   await workspaceState('checked');
   assert.equal(await page.evaluate(() => window.localEnglish.model.loadCount), 1);
   report.checks.push('The workspace Original box supports automatic checking, stays editable, and rescans replacements');
+
+  // Navigation crosses sentence boundaries and reveals offscreen textarea spans.
+  await site.bringToFront();
+  const originalHeight = await field.evaluate(node => { const height = node.style.height; node.style.height = '72px'; return height; });
+  const longDraft = `${sentence}\n${'The message is clear.\n'.repeat(12)}He go to work every day.`;
+  await field.fill(longDraft);
+  await state('suggestions');
+  await field.evaluate(node => { node.scrollTop = 0; });
+  const beforeNavigation = await count();
+  await host.getByRole('button', { name: 'Review correction: go → went', exact: true }).click();
+  assert.equal(await host.locator('.suggestion-position').innerText(), '1 / 3');
+  await next.click();
+  await next.click();
+  assert.equal(await host.locator('.correction').innerText(), 'goes');
+  assert.equal(await host.locator('.suggestion-position').innerText(), '3 / 3');
+  assert.equal(await host.locator('.panel').isVisible(), true);
+  assert.ok(await field.evaluate(node => node.scrollTop) > 0);
+  await previous.click();
+  assert.equal(await host.locator('.correction').innerText(), 'bought');
+  assert.equal(await host.locator('.suggestion-position').innerText(), '2 / 3');
+  assert.equal(await field.inputValue(), longDraft);
+  assert.equal(await count(), beforeNavigation);
+  await field.evaluate((node, height) => { node.style.height = height; }, originalHeight);
+  report.checks.push('Suggestion navigation crosses sentences and scrolls offscreen textarea corrections into view without inference');
 
   // Keep the remainder of the persistence/manual checks independent.
   await page.locator('#auto-check').uncheck();

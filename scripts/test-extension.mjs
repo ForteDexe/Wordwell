@@ -196,6 +196,7 @@ try {
   report.checks.push('Selecting text shows an anchored icon without inference');
   await inlineTrigger.click();
   await inlineState('result');
+  assert.equal(await inlineHost.locator('.workspace-link, .suggestion-navigation').count(), 0, 'Manual selection has one passage and no card Aa button');
   report.inlineResult = await inlineHost.locator('.correction').innerText();
   assert.equal(report.inlineResult, 'Yesterday I went to the shop and bought some milk.');
   assert.equal(await site.locator('#paragraph').inputValue(), 'Yesterday I go to the shop and buy some milk.');

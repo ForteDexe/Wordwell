@@ -3,6 +3,16 @@ import { savedModelInfo, savedModelFile, rememberModel, forgetModel } from './mo
 import { setModelState } from './model-state.js';
 
 const $ = id => document.getElementById(id);
+$('gpu-settings').addEventListener('click', async event => {
+  event.preventDefault();
+  const note = $('gpu-tip-status');
+  note.hidden = true;
+  try { await chrome.tabs.create({ url: event.currentTarget.href }); }
+  catch {
+    note.textContent = 'Could not open the setting. Paste chrome://flags/#force-high-performance-gpu into the address bar.';
+    note.hidden = false;
+  }
+});
 const status = message => { $('status').textContent = message; };
 const model = new LocalModel(status);
 let result = null;

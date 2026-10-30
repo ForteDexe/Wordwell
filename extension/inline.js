@@ -195,6 +195,21 @@
     const rect = snapshot.range.getClientRects()[0];
     return rect ? { left: rect.left, top: rect.top, bottom: rect.bottom } : null;
   }
+  function revealSuggestion(snapshot) {
+    const target = snapshot.target;
+    const source = snapshot.kind === 'plain' ? target : snapshot.range.startContainer.parentElement || target;
+    source.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    if (snapshot.kind !== 'plain') return;
+    const rect = plainAnchor(snapshot, true)?.[0];
+    if (!rect) return;
+    const box = target.getBoundingClientRect();
+    const top = box.top + target.clientTop, left = box.left + target.clientLeft;
+    const bottom = top + target.clientHeight, right = left + target.clientWidth;
+    if (rect.top < top) target.scrollTop += rect.top - top;
+    else if (rect.bottom > bottom) target.scrollTop += rect.bottom - bottom;
+    if (rect.left < left) target.scrollLeft += rect.left - left;
+    else if (rect.right > right) target.scrollLeft += rect.right - right;
+  }
   function position() {
     if (!current || !host || host.dataset.state === 'hidden') return;
     raiseUI(current.target);
@@ -348,9 +363,30 @@
       if (unchanged) replace.title = 'No changes to replace';
       actions.append(replace);
       if (snapshot.automatic) actions.append(button('Ignore', 'action secondary', () => { automatic.ignore(snapshot); hide(); }));
-      const workspace = button('Aa', 'workspace-link', () => send({ type: 'open-workspace' }).catch(() => {}));
-      workspace.setAttribute('aria-label', 'Open model workspace'); workspace.title = 'Local English · Model workspace';
-      actions.append(workspace);
+      if (snapshot.automatic) {
+        const { index, total } = automatic.navigation(snapshot);
+        if (index >= 0) {
+          const navigation = element('div', 'suggestion-navigation');
+          navigation.setAttribute('role', 'group'); navigation.setAttribute('aria-label', 'Suggestion navigation');
+          for (const [step, label, disabled] of [[-1, 'Previous suggestion', index === 0], [1, 'Next suggestion', index === total - 1]]) {
+            if (step === 1) {
+              const count = element('span', 'suggestion-position', `${index + 1} / ${total}`);
+              count.setAttribute('role', 'status'); navigation.append(count);
+            }
+            const arrow = button(step < 0 ? '<' : '>', 'suggestion-nav', () => {
+              if (!automatic.navigate(snapshot, step)) return;
+              const preferred = panel.querySelector(`.suggestion-nav[data-step="${step}"]`);
+              const focus = preferred?.disabled ? panel.querySelector('.suggestion-nav:not(:disabled)') : preferred;
+              focus?.focus({ preventScroll: true });
+            });
+            arrow.dataset.step = String(step); arrow.disabled = disabled;
+            arrow.setAttribute('aria-label', label); arrow.title = label;
+            on(arrow, 'pointerdown', event => event.preventDefault());
+            navigation.append(arrow);
+          }
+          actions.append(navigation);
+        }
+      }
     } else {
       body.append(element('p', 'message', response.error));
       if (response.code === 'model-not-loaded') actions.append(button('Open model workspace', 'action', () => send({ type: 'open-workspace' }).catch(() => {})));
@@ -540,8 +576,9 @@
     onEditorFocus: listener => { componentFocusListener = listener; on(window, 'focusin', listener, { capture: true }); },
     tools: createWritingTools(diffText),
     ui: () => { ensureUI(); return { host, root }; },
-    openSuggestion: (snapshot, corrected) => {
+    openSuggestion: (snapshot, corrected, reveal) => {
       hide(); current = snapshot;
+      if (reveal) revealSuggestion(snapshot);
       observer = new ResizeObserver(position); observer.observe(snapshot.target);
       render('result', snapshot, { result: { corrected } });
     },

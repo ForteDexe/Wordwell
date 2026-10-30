@@ -5,6 +5,10 @@ header, .model-title, .editor-heading { justify-content: space-between; } header
 .mark { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 15px; background: #18594e; color: white; font: 27px Georgia, serif; }
 h1 { margin: 0; font-size: 27px; letter-spacing: -.8px; } h2 { margin: 0; font-size: 18px; } p { margin: 8px 0; } header p { color: #647572; font-size: 14px; margin: 2px 0 0; }
 .badge { padding: 7px 12px; border: 1px solid #d4e0da; border-radius: 20px; background: #edf4ef; color: #416058; font-size: 12px; }
+.performance-tip { margin-bottom: 22px; padding: 14px 18px; border: 1px solid #cbded2; border-radius: 10px; background: #edf6f0; color: #385b4c; font-size: 14px; }
+.performance-tip p { margin: 4px 0 0; }
+.performance-tip a { color: #18594e; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.performance-tip a:focus-visible { outline: 2px solid #409076; outline-offset: 3px; }
 section { background: white; border: 1px solid #dde5df; border-radius: 14px; padding: 25px; margin-bottom: 22px; }
 .model-title { margin-bottom: 16px; } .state { font-size: 12px; background: #f0f2f1; padding: 4px 10px; border-radius: 20px; color: #61736d; }
 .state.ready { background: #e4f4e9; color: #256442; } .model-controls { flex-wrap: wrap; gap: 10px; }

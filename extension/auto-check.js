@@ -133,9 +133,16 @@ export function createAutoChecker(api) {
       if (pending && !timer) queueMicrotask(pump);
     }
   }
-  function show(result) {
-    if (!refreshSnapshot(result)) { drawSoon(); return; }
-    openSuggestion(result.snapshot, result.corrected);
+  function show(result, reveal = false) {
+    if (!refreshSnapshot(result)) { drawSoon(); return false; }
+    openSuggestion(result.snapshot, result.corrected, reveal);
+    return true;
+  }
+  function navigationFor(snapshot) {
+    const record = snapshot.autoRecord;
+    const results = enabled && record === active && record?.target.isConnected && textAt(record) === record.value
+      ? record.results.filter(refreshSnapshot) : [];
+    return { results, index: results.findIndex(result => result.snapshot.autoKey === snapshot.autoKey) };
   }
   function refreshSnapshot(result) {
     if (valid(result.snapshot)) return true;
@@ -224,6 +231,16 @@ export function createAutoChecker(api) {
   const poll = setInterval(synchronize, 400);
   return {
     refreshLayout: drawSoon,
+    navigation(snapshot) {
+      const { results, index } = navigationFor(snapshot);
+      return { index, total: results.length };
+    },
+    navigate(snapshot, step) {
+      const { results, index } = navigationFor(snapshot);
+      if (index < 0) { hideSuggestion(); return false; }
+      const next = results[index + step];
+      return next ? show(next, true) : false;
+    },
     diagnostics() {
       return { enabled, settingsReady, inputs, mutationsDetected, composing, lastChange, lastPump,
         active: Boolean(active), phase: active?.phase || null, sourceLength: active?.value.length ?? null,

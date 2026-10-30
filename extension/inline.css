@@ -42,8 +42,11 @@ button { font-family: inherit; cursor: pointer; }
 .action:hover { background: #eff7f2; border-color: #81b39f; }
 .action:disabled { opacity: .5; cursor: default; }
 .secondary { background: transparent; border-color: transparent; box-shadow: none; color: #65776d; font-weight: 400; }
-.workspace-link { margin-left: auto; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #7c8d83; font: 600 15px Georgia, serif; }
-.workspace-link:hover { background: #eff7f2; color: #187b69; }
+.suggestion-navigation { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; }
+.suggestion-position { min-width: 32px; color: #6e7b75; font-size: 11px; text-align: center; white-space: nowrap; }
+.suggestion-nav { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #245f50; font-size: 17px; line-height: 20px; }
+.suggestion-nav:hover:not(:disabled) { background: #eff7f2; color: #187b69; }
+.suggestion-nav:disabled { opacity: .3; cursor: default; }
 .auto-status { position: fixed; pointer-events: auto; display: grid; place-items: center; padding: 0; border: 1px solid #c5d7cb; border-radius: 50%; background: #fff; color: #18594e; box-shadow: 0 1px 4px #0002; font: 600 11px system-ui, sans-serif; z-index: 1; }
 .auto-status[data-state=checking] { border-color: #409076; background: #eff8f1; }
 .auto-status[data-state=error] { color: #b42318; border-color: #dfaaaa; }
