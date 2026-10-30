@@ -1,7 +1,7 @@
 // Shared by ordinary website fields and the extension's workspace. This
 // function is statically bundled; no remote scripts or runtime eval are used.
 export function createAutoChecker(api) {
-  const { on, element, button, send, valid, editableTarget, eventEditableTarget, focusedEditableTarget, onEditorFocus, editorText, editorSnapshot, editorRects, trackEditorVisibility, refreshEditorVisibility, raiseUI, insideUI, probeSelection, tools, ui, openSuggestion, hideSuggestion } = api;
+  const { on, element, button, send, valid, editableTarget, eventEditableTarget, focusedEditableTarget, onEditorFocus, editorText, editorSnapshot, editorRects, trackEditorVisibility, refreshEditorVisibility, raiseUI, insideUI, controlLayout, probeSelection, tools, ui, openSuggestion, hideSuggestion } = api;
   const { host, root } = ui();
   const records = new WeakMap();
   const underlines = element('div', 'auto-underlines');
@@ -172,12 +172,11 @@ export function createAutoChecker(api) {
     if (textAt(active) !== active.value) {
       mutationsDetected++; change(active, textAt(active), 'editor-normalized-text');
     }
-    const box = active.target.getBoundingClientRect();
-    if (box.width < 20 || box.height < 15 || box.bottom < 0 || box.top > innerHeight || box.right < 0 || box.left > innerWidth) return;
-    const size = box.height < 40 ? 18 : 24;
+    const controls = controlLayout(active.target);
+    if (!controls) return;
+    const { size, left, top } = controls;
     indicator.style.width = `${size}px`; indicator.style.height = `${size}px`;
-    indicator.style.left = `${Math.min(innerWidth - size - 4, Math.max(4, box.right - size - 5))}px`;
-    indicator.style.top = `${Math.min(innerHeight - size - 4, Math.max(4, box.top + 1, box.bottom - size - 5))}px`;
+    indicator.style.left = `${left}px`; indicator.style.top = `${top}px`;
     indicator.hidden = false;
     const state = running ? 'checking' : !enabled ? 'paused' : active.phase;
     const labels = { idle: 'Ready. Type to check automatically.', waiting: 'Waiting for a typing pause…', checking: enabled ? 'Checking grammar…' : 'Finishing the current check. Automatic checking is paused.', paused: 'Automatic checking is paused. Click to open settings.', checked: 'No changes suggested. The model can still miss errors.', suggestions: `${active.results.length} suggestion${active.results.length === 1 ? '' : 's'}. Click to review.`, error: active.error?.error || 'Could not check this text. Click to try again.' };

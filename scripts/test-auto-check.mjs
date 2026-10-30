@@ -37,6 +37,18 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
   report.checks.push('Typing is debounced; a bottom-right spinner reports processing without changing the text');
   report.checks.push('Automatic sentence checks display clickable word underlines without opening a popup');
 
+  await field.evaluate(node => { node.focus(); node.select(); node.dispatchEvent(new Event('select', { bubbles: true })); });
+  const bulb = host.getByRole('button', { name: 'Check selected text with Local English', exact: true });
+  await bulb.waitFor({ state: 'visible' });
+  const bulbBox = await bulb.boundingBox(), countBox = await status.boundingBox();
+  assert.equal(await status.innerText(), '2');
+  assert.ok(Math.abs(bulbBox.x + bulbBox.width + 6 - countBox.x) < 1 && Math.abs(bulbBox.y - countBox.y) < 1);
+  assert.equal(await count(), baseline + 1);
+  await site.screenshot({ path: 'artifacts/selection-bulb-with-count.png', fullPage: true });
+  await field.evaluate(node => { node.setSelectionRange(0, 0); node.dispatchEvent(new Event('select', { bubbles: true })); });
+  await bulb.waitFor({ state: 'hidden' });
+  report.checks.push('Selecting text shows the bulb before the live suggestion count without changing its value or rechecking');
+
   await host.getByRole('button', { name: 'Review correction: go → went', exact: true }).click();
   assert.equal(await host.locator('.correction').innerText(), 'went');
   const previous = host.getByRole('button', { name: 'Previous suggestion', exact: true });

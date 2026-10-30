@@ -39,8 +39,8 @@ export async function testCommentLayouts({ page, site, report, loaded }) {
     }, mode);
     await site.keyboard.press('Control+a');
     if (mode === 'normal') {
-      // A genuine partial textarea selection also checks mirror placement
-      // when the website gives all ordinary spans hostile layout rules.
+      // A genuine partial textarea selection also checks the popup's mirror
+      // placement under hostile host-page span rules.
       await site.keyboard.press('ArrowLeft');
       for (let i = 0; i < 6; i++) await site.keyboard.press('ArrowRight');
       await site.keyboard.down('Shift');
@@ -48,16 +48,17 @@ export async function testCommentLayouts({ page, site, report, loaded }) {
       await site.keyboard.up('Shift');
     }
     await waitState('trigger');
+    await click('.trigger'); await waitState('result');
     if (mode === 'normal') {
       const anchored = await site.evaluate(() => {
         const editor = window.commentLayouts.editors.normal, rect = editor.getBoundingClientRect();
-        const icon = window.commentLayouts.ui.shadowRoot.querySelector('.trigger').getBoundingClientRect();
+        const panel = window.commentLayouts.ui.shadowRoot.querySelector('.panel').getBoundingClientRect();
         const context = document.createElement('canvas').getContext('2d'); context.font = '13px monospace';
-        return { error: Math.abs(icon.left - rect.left - 13 - context.measureText('Keep. ').width) };
+        const left = Math.min(Math.max(8, rect.left + 13 + context.measureText('Keep. ').width), innerWidth - panel.width - 8);
+        return { error: Math.abs(panel.left - left) };
       });
       assert.ok(anchored.error < 3, 'Host-page span styles must not move the selection anchor');
     }
-    await click('.trigger'); await waitState('result');
     const corrected = await text('.correction'); assert.match(corrected, /went/); assert.match(corrected, /bought/);
     if (mode === 'modal') await site.screenshot({ path: 'artifacts/reddit-style-markdown-modal.png', fullPage: true });
     await click('.actions .action');

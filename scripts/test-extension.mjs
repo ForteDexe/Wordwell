@@ -192,9 +192,16 @@ try {
   assert.equal(await page.evaluate(() => window.localEnglish.model.checkCount), baselineChecks);
   const box = await site.locator('#paragraph').boundingBox();
   const icon = await inlineTrigger.boundingBox();
-  assert.ok(Math.abs(icon.x - box.x) < 70 && icon.y <= box.y + 30, 'Icon must anchor at the selection start');
-  report.checks.push('Selecting text shows an anchored icon without inference');
-  await inlineTrigger.click();
+  const fieldStatus = await inlineHost.locator('.auto-status').boundingBox();
+  assert.ok(Math.abs(icon.x + icon.width + 6 - fieldStatus.x) < 1 && Math.abs(icon.y - fieldStatus.y) < 1, 'Bulb must sit immediately before the bottom-right status');
+  assert.ok(icon.y + icon.height <= box.y + box.height && icon.x >= box.x);
+  assert.equal(await inlineTrigger.locator('svg').count(), 1);
+  assert.equal(await inlineTrigger.innerText(), '');
+  report.checks.push('Selecting text shows a bulb beside the bottom-right status without inference');
+  await inlineTrigger.focus();
+  await site.waitForTimeout(500);
+  assert.equal(await inlineTrigger.isVisible(), true, 'Keyboard focus must not hide the selection bulb');
+  await inlineTrigger.press('Enter');
   await inlineState('result');
   assert.equal(await inlineHost.locator('.workspace-link, .suggestion-navigation').count(), 0, 'Manual selection has one passage and no card Aa button');
   report.inlineResult = await inlineHost.locator('.correction').innerText();
@@ -354,8 +361,7 @@ try {
   assert.ok(card.x >= 0 && card.y >= 0 && card.x + card.width <= 390 && card.y + card.height <= 650, 'Popup must fit within the viewport');
   report.checks.push('Popup stays inside a narrow viewport');
 
-  // Use a real mouse selection on wrapped, scrolled text to verify the mirror
-  // anchor agrees with the native text layout, rather than just its first line.
+  // A real selection in scrolled text keeps its bulb at the field controls.
   await site.setViewportSize({ width: 1280, height: 1000 });
   await site.locator('#paragraph').fill('This is a test of wrapped text. '.repeat(40));
   await site.locator('#paragraph').evaluate(field => { field.setSelectionRange(0, 0); field.scrollTop = 45; });
@@ -367,8 +373,16 @@ try {
   await site.mouse.up();
   await inlineTrigger.waitFor({ state: 'visible' });
   const scrolledIcon = await inlineTrigger.boundingBox();
-  assert.ok(Math.abs(scrolledIcon.x - startPoint.x) < 20 && Math.abs(scrolledIcon.y + 31 - startPoint.y) < 25, 'Icon must follow the native start of a wrapped, scrolled selection');
-  report.checks.push('Icon anchors to a real mouse selection in wrapped, scrolled text');
+  const scrolledStatus = await inlineHost.locator('.auto-status').boundingBox();
+  assert.ok(Math.abs(scrolledIcon.x + scrolledIcon.width + 6 - scrolledStatus.x) < 1 && Math.abs(scrolledIcon.y - scrolledStatus.y) < 1);
+  // Selecting all scrolls the selection start out of view; the bulb must stay.
+  await site.locator('#paragraph').evaluate(field => { field.focus(); field.select(); field.scrollTop = field.scrollHeight; field.dispatchEvent(new Event('select', { bubbles: true })); });
+  await inlineTrigger.waitFor({ state: 'visible' });
+  assert.equal(await site.locator('#paragraph').evaluate(field => field.scrollTop > 0), true);
+  await site.screenshot({ path: 'artifacts/selection-bulb.png', fullPage: true });
+  await site.locator('#paragraph').evaluate(field => { field.setSelectionRange(field.value.length, field.value.length); field.dispatchEvent(new Event('select', { bubbles: true })); });
+  await inlineTrigger.waitFor({ state: 'hidden' });
+  report.checks.push('The selection bulb stays beside the count when selection starts offscreen, and hides when selection collapses');
   await testCommentLayouts({ page, site, report, loaded });
   await testShadowEditors({ page, site, report, loaded });
   await testAutomaticChecking({ context, page, site, report, loaded });

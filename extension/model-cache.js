@@ -3,7 +3,9 @@ export const CACHE_STORE = 'selected-model';
 
 async function database() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(CACHE_DB_NAME, 1);
+    // The discarded direct-file experiment used v2. Open the existing
+    // version so returning to cached autoload also works in those profiles.
+    const request = indexedDB.open(CACHE_DB_NAME);
     request.onupgradeneeded = () => request.result.createObjectStore(CACHE_STORE);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -34,7 +36,8 @@ export async function rememberModel(file) {
     await new Promise((resolve, reject) => {
       const transaction = db.transaction(CACHE_STORE, 'readwrite');
       const store = transaction.objectStore(CACHE_STORE);
-      // One key is replaced atomically, so changing models retains one copy.
+      // Replace the selection atomically, including any experimental handle.
+      store.clear();
       store.put(file, 'file');
       store.put({ name: file.name, bytes: file.size, savedAt: Date.now() }, 'info');
       transaction.oncomplete = resolve;

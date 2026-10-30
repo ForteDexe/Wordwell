@@ -11,7 +11,8 @@
 [hidden] { display: none !important; }
 button { font-family: inherit; cursor: pointer; }
 .trigger, .panel { position: fixed; pointer-events: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; line-height: 20px; text-align: left; color: #1f2328; }
-.trigger { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; background: #fff; border: 1px solid #d0d7de; border-radius: 7px; box-shadow: 0 2px 6px rgba(140,149,159,.3); color: #18594e; font: 600 16px Georgia, serif; }
+.trigger { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; background: #fff; border: 1px solid #c5d7cb; border-radius: 50%; box-shadow: 0 1px 4px #0002; color: #18594e; z-index: 1; }
+.trigger svg { width: 75%; height: 75%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .trigger:hover { background: #f0f7f3; border-color: #73a68d; }
 .trigger:focus-visible, button:focus-visible { outline: 2px solid #409076; outline-offset: 2px; }
 .panel { background: #fff; border: 1px solid #b5d3c9; border-radius: 12px; box-shadow: 0 5px 20px #233d3324, 0 1px 3px #233d3314; width: min(480px, calc(100vw - 16px)); max-height: calc(100vh - 16px); padding: 17px 18px 16px 30px; overflow-y: auto; overscroll-behavior: contain; }

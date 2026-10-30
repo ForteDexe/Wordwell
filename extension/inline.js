@@ -136,7 +136,12 @@
     host.dataset.state = 'hidden';
     root = host.attachShadow({ mode: 'open' });
     const sheet = new CSSStyleSheet(); sheet.replaceSync(CSS); root.adoptedStyleSheets = [sheet];
-    trigger = button('Aa', 'trigger', checkSelection);
+    trigger = button('', 'trigger', checkSelection);
+    const bulb = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    bulb.setAttribute('viewBox', '0 0 24 24'); bulb.setAttribute('aria-hidden', 'true'); bulb.setAttribute('focusable', 'false');
+    const outline = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    outline.setAttribute('d', 'M9 16v-1.5c0-1.1-.8-2-1.5-2.8a6 6 0 1 1 9 0c-.7.8-1.5 1.7-1.5 2.8V16M9 17h6M10 20h4');
+    bulb.append(outline); trigger.append(bulb);
     trigger.setAttribute('aria-label', 'Check selected text with Local English');
     trigger.title = 'Check selected text'; trigger.hidden = true;
     on(trigger, 'pointerdown', event => event.preventDefault());
@@ -210,14 +215,28 @@
     if (rect.left < left) target.scrollLeft += rect.left - left;
     else if (rect.right > right) target.scrollLeft += rect.right - right;
   }
+  function controlLayout(target) {
+    const box = target.getBoundingClientRect();
+    if (box.width < 20 || box.height < 15 || box.bottom < 0 || box.top > innerHeight || box.right < 0 || box.left > innerWidth) return null;
+    const size = box.height < 40 ? 18 : 24;
+    return { size, left: clamp(box.right - size - 5, 4, innerWidth - size - 4),
+      top: clamp(Math.max(box.top + 1, box.bottom - size - 5), 4, innerHeight - size - 4) };
+  }
   function position() {
     if (!current || !host || host.dataset.state === 'hidden') return;
+    if (!valid(current)) { hide(); return; }
     raiseUI(current.target);
-    const point = anchor(current);
-    if (!point || point.bottom < 0 || point.top > innerHeight) { hide(); return; }
-    trigger.style.left = `${clamp(point.left, 8, innerWidth - 35)}px`;
-    trigger.style.top = `${clamp(point.top - 31, 8, innerHeight - 35)}px`;
+    const controls = controlLayout(current.target);
+    if (!controls) { hide(); return; }
+    const { size, left, top } = controls;
+    // Use the same geometry as the status/count, with a six-pixel gap. If
+    // the viewport is too narrow for the pair, put the bulb above the count.
+    const bulbLeft = left - size - 6, stacked = bulbLeft < 4;
+    const bulbTop = stacked ? clamp(top - size - 6, 4, innerHeight - size - 4) : top;
+    Object.assign(trigger.style, { width: `${size}px`, height: `${size}px`, left: `${stacked ? left : bulbLeft}px`, top: `${bulbTop}px` });
     if (!panel.hidden) {
+      const point = anchor(current) || (!current.automatic ? { left: Math.max(4, bulbLeft), top: bulbTop, bottom: bulbTop + size } : null);
+      if (!point || point.bottom < 0 || point.top > innerHeight) { hide(); return; }
       const width = panel.offsetWidth, height = panel.offsetHeight;
       panel.style.left = `${clamp(point.left, 8, innerWidth - width - 8)}px`;
       const below = point.bottom + 6;
@@ -247,7 +266,7 @@
     if (destroyed) return;
     try { if (!chrome.runtime?.id) { destroy(); return; } } catch { destroy(); return; }
     // Buttons in our own shadow root may take focus without changing the saved selection.
-    if (host && belongsToUI(deepActiveElement()) && !panel.hidden) return;
+    if (host && belongsToUI(deepActiveElement()) && (!panel.hidden || !trigger.hidden)) return;
     if (current?.automatic && valid(current) && !panel.hidden) return;
     const next = readSelection();
     if (!next) { hide(); return; }
@@ -403,7 +422,16 @@
   }
   async function checkSelection() {
     if (!current || !valid(current)) { hide(); return; }
-    const snapshot = current, version = ++requestVersion;
+    const snapshot = current;
+    // Keyboard activation hides the focused bulb when the card opens. Return
+    // focus to the source first so the browser keeps its saved selection.
+    if (belongsToUI(deepActiveElement())) {
+      snapshot.target.focus({ preventScroll: true });
+      if (!valid(snapshot)) { hide(); return; }
+      if (snapshot.kind === 'plain') snapshot.target.setSelectionRange(snapshot.start, snapshot.end);
+      else restoreRange(snapshot.target, snapshot.range);
+    }
+    const version = ++requestVersion;
     if (snapshot.text.length > 1600) { render('error', snapshot, { error: 'Select a shorter passage (up to 1,600 characters).', code: 'invalid-text' }); return; }
     render('loading', snapshot);
     try {
@@ -571,7 +599,7 @@
   on(window, 'error', event => {
     if (event.filename?.startsWith(chrome.runtime.getURL(''))) lastScriptError = { name: event.error?.name || 'Error', file: event.filename.split('/').at(-1), line: event.lineno, time: Date.now() };
   });
-  automatic = createAutoChecker({ on, element, button, send, valid, editableTarget, eventEditableTarget, focusedEditableTarget, editorText, editorSnapshot, editorRects, trackEditorVisibility, refreshEditorVisibility, raiseUI, insideUI,
+  automatic = createAutoChecker({ on, element, button, send, valid, editableTarget, eventEditableTarget, focusedEditableTarget, editorText, editorSnapshot, editorRects, trackEditorVisibility, refreshEditorVisibility, raiseUI, insideUI, controlLayout,
     probeSelection: scan,
     onEditorFocus: listener => { componentFocusListener = listener; on(window, 'focusin', listener, { capture: true }); },
     tools: createWritingTools(diffText),
