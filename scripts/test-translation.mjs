@@ -10,6 +10,8 @@ export async function testTranslation({ page, site, report }) {
   await page.locator('#auto-check').uncheck();
   assert.equal(await page.locator('#translation-enabled').isChecked(), false);
   assert.equal(await page.locator('#translation-language').isDisabled(), true);
+  assert.equal(await page.locator('#instant-translation').isChecked(), false);
+  assert.equal(await page.locator('#instant-translation').isDisabled(), true);
   const initial = await page.evaluate(() => window.localEnglish.snapshot());
   async function select(text = 'Hello.') {
     await surface.bringToFront(); await field.fill(text);
@@ -93,6 +95,64 @@ export async function testTranslation({ page, site, report }) {
   assert.match(richTranslation, /^(?:xin )?chào(?: bạn)?[.!]?$/i);
   await host.getByRole('button', { name: 'Replace', exact: true }).click();
   assert.equal(await rich.innerText(), richTranslation);
+  // Direct translation preserves surrounding text and the native Undo history.
+  await page.locator('#instant-translation').check();
+  await page.waitForFunction(async () => (await chrome.storage.local.get('instantTranslation')).instantTranslation === true);
+  await select('Before Hello. After');
+  await field.evaluate(node => { node.setSelectionRange(7, 13); node.dispatchEvent(new Event('select', { bubbles: true })); });
+  await surface.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await translate.waitFor({ state: 'visible' });
+  await translate.focus(); await translate.press('Enter');
+  await surface.waitForFunction(selector => document.querySelector(selector).value !== 'Before Hello. After', selector, { timeout: 120000 });
+  assert.match(await field.inputValue(), /^Before (?:xin )?chào(?: bạn)?[.!]? After$/i);
+  assert.equal(await host.locator('.panel').isVisible(), false);
+  await field.press('Control+z'); assert.equal(await field.inputValue(), 'Before Hello. After');
+  report.checks.push('Instant translation replaces only the saved selection without a preview and supports native Undo');
+
+  await rich.evaluate(node => {
+    node.innerHTML = '<strong>Hello.</strong> Keep this.'; node.focus();
+    const range = document.createRange(); range.selectNodeContents(node.firstChild);
+    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    document.dispatchEvent(new Event('selectionchange'));
+  });
+  await translate.waitFor({ state: 'visible' }); await translate.click();
+  await surface.waitForFunction(selector => document.querySelector(selector).innerText !== 'Hello. Keep this.', richSelector, { timeout: 120000 });
+  assert.match(await rich.locator('strong').innerText(), /^(?:xin )?chào(?: bạn)?[.!]?$/i);
+  assert.match(await rich.innerText(), / Keep this\.$/);
+  assert.equal(await host.locator('.panel').isVisible(), false);
+  await rich.press('Control+z'); assert.equal(await rich.innerText(), 'Hello. Keep this.');
+  report.checks.push('Instant translation keeps rich-text formatting, neighboring content, and Undo');
+
+  await select();
+  await field.evaluate(node => node.addEventListener('beforeinput', event => {
+    if (event.inputType === 'insertReplacementText') event.preventDefault();
+  }, { once: true }));
+  await translate.click();
+  await surface.waitForFunction(() => document.querySelector('local-english-selection')?.dataset.state === 'error', undefined, { timeout: 120000 });
+  assert.match(await host.locator('.body').innerText(), /editor blocked replacement/);
+  assert.equal(await field.inputValue(), 'Hello.');
+  assert.equal(await host.locator('.translate-trigger').getAttribute('aria-busy'), null);
+  await host.getByRole('button', { name: 'Close suggestion', exact: true }).click();
+  report.checks.push('An editor can veto instant replacement; failures show an error and preserve the source');
+
+  await page.evaluate(() => {
+    const runtime = window.localEnglish.model.runtime, generate = runtime.createChatCompletion;
+    let release; const gate = new Promise(resolve => { release = resolve; });
+    runtime.createChatCompletion = async function(options) { await gate; return generate.call(this, options); };
+    window.instantTranslationGate = { release, restore: () => { runtime.createChatCompletion = generate; } };
+  });
+  try {
+    await select(); await translate.click();
+    await page.waitForFunction(() => window.localEnglish.model.busy);
+    assert.equal(await translate.getAttribute('aria-busy'), 'true');
+    assert.equal(await host.locator('.panel').isVisible(), false);
+    await field.fill('New draft while translating.');
+    await page.evaluate(() => window.instantTranslationGate.release());
+    await page.waitForFunction(() => !window.localEnglish.model.busy, undefined, { timeout: 120000 });
+    assert.equal(await field.inputValue(), 'New draft while translating.');
+    assert.equal(await host.locator('.panel').isVisible(), false);
+  } finally { await page.evaluate(() => { window.instantTranslationGate.release(); window.instantTranslationGate.restore(); delete window.instantTranslationGate; }); }
+  report.checks.push('Instant mode shows progress on the icon and discards results if the draft changes during inference');
   if (!site) await rich.evaluate(node => node.remove());
   report.checks.push('Translation selection and Replace also work in a contenteditable editor');
 
@@ -106,6 +166,7 @@ export async function testTranslation({ page, site, report }) {
   try {
     await select(); await translate.click();
     await page.waitForFunction(() => window.localEnglish.model.busy);
+    assert.equal(await host.locator('.panel').isVisible(), false);
     await page.evaluate(() => chrome.storage.local.set({ translationLanguage: 'es' }));
     await host.locator('.panel').waitFor({ state: 'hidden' });
     await page.evaluate(() => window.translationGate.release());
@@ -120,6 +181,14 @@ export async function testTranslation({ page, site, report }) {
   await page.waitForFunction(() => window.localEnglish?.initialized && window.localEnglish.model.ready, undefined, { timeout: 180000 });
   assert.equal(await page.locator('#translation-enabled').isChecked(), true);
   assert.equal(await page.locator('#translation-language').inputValue(), 'es');
+  assert.equal(await page.locator('#instant-translation').isChecked(), true);
+  await page.locator('#instant-translation').uncheck();
+  await page.waitForFunction(async () => (await chrome.storage.local.get('instantTranslation')).instantTranslation === false);
+  await select(); await translate.click();
+  assert.match(await result(), /^Hola[.!]?$/i);
+  assert.equal(await field.inputValue(), 'Hello.');
+  await host.getByRole('button', { name: 'Close suggestion', exact: true }).click();
+  report.checks.push('Instant translation survives reload and disabling it restores the translation preview');
   await page.locator('#translation-enabled').uncheck();
   await page.waitForFunction(async () => (await chrome.storage.local.get('translationEnabled')).translationEnabled === false);
   await select(); await translate.waitFor({ state: 'hidden' });

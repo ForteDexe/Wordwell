@@ -9,6 +9,13 @@
   const events = new AbortController();
   let host, root, trigger, translationTrigger, panel, current = null;
   let translationEnabled = false, translationLanguage = languages.defaultLanguage;
+  let instantTranslation = false;
+  let selectionPointer = null;
+  let pageTranslationEnabled = false, pageTranslationLanguage = languages.defaultLanguage, selectionOrigin = null;
+  const pageObserver = new MutationObserver(() => {
+    if (!current?.pageSelection) return;
+    if (!valid(current)) hide(); else position();
+  });
   let requestVersion = 0, frame = 0, destroyed = false, observer;
   let automatic;
   let componentFocusListener;
@@ -28,7 +35,7 @@
       if (!previous || previous.intersecting !== next.intersecting || Object.keys(next.insets).some(key => Math.abs(previous.insets[key] - next.insets[key]) > .01 || Math.abs(previous.bounds[key] - next.bounds[key]) > .01)) changed = true;
       editorVisibility.set(entry.target, next);
     }
-    if (changed) automatic?.refreshLayout();
+    if (changed) { automatic?.refreshLayout(); if (current?.pageSelection) position(); }
   });
   const focusRoots = new WeakSet();
   const on = (target, type, listener, options = {}) => target.addEventListener(type, listener, { ...options, signal: events.signal });
@@ -163,16 +170,23 @@
     raiseUI(deepActiveElement());
   }
   function destroy() {
+    pageObserver.disconnect();
     chrome.storage.onChanged.removeListener(translationSettingsListener);
     destroyed = true; automatic?.destroy(); events.abort(); observer?.disconnect(); visibilityObserver.disconnect(); cancelAnimationFrame(visibilityFrame); cancelAnimationFrame(frame); host?.remove();
   }
   function hide() {
     requestVersion += 1;
+    if (current?.pageSelection) { visibilityObserver.unobserve(current.target); editorVisibility.delete(current.target); }
+    pageObserver.disconnect();
     current = null; observer?.disconnect();
-    if (host) { host.dataset.state = 'hidden'; trigger.hidden = true; translationTrigger.hidden = true; panel.hidden = true; }
+    if (host) { host.dataset.state = 'hidden'; trigger.hidden = true; translationTrigger.hidden = true; translationTrigger.disabled = false; translationTrigger.removeAttribute('aria-busy'); panel.hidden = true; }
   }
   function valid(snapshot) {
     if (!snapshot?.target.isConnected) return false;
+    if (snapshot.kind === 'page') return snapshot.range.startContainer.isConnected && snapshot.range.endContainer.isConnected
+      && snapshot.range.toString() === snapshot.rangeText && !snapshot.range.collapsed;
+    if (snapshot.kind === 'page-control') return snapshot.target.value === snapshot.value && !snapshot.target.disabled
+      && (!(snapshot.target instanceof HTMLInputElement) || ['text', 'search', 'url', 'tel'].includes(snapshot.target.type));
     if (snapshot.kind === 'plain') return snapshot.target.value === snapshot.value && !snapshot.target.disabled && !snapshot.target.readOnly
       && (!(snapshot.target instanceof HTMLInputElement) || ['text', 'search', 'url', 'tel'].includes(snapshot.target.type));
     return snapshot.target.isContentEditable && snapshot.target.contains(snapshot.range.startContainer)
@@ -208,7 +222,7 @@
   }
   function anchor(snapshot) {
     if (!valid(snapshot)) return null;
-    if (snapshot.kind === 'plain') return plainAnchor(snapshot);
+    if (snapshot.kind === 'plain' || snapshot.kind === 'page-control') return plainAnchor(snapshot);
     const rect = snapshot.range.getClientRects()[0];
     return rect ? { left: rect.left, top: rect.top, bottom: rect.bottom } : null;
   }
@@ -238,6 +252,24 @@
     if (!current || !host || host.dataset.state === 'hidden') return;
     if (!valid(current)) { hide(); return; }
     raiseUI(current.target);
+    if (current.pageSelection) {
+      const rectangles = editorRects(current);
+      if (!rectangles.length) { translationTrigger.hidden = true; panel.hidden = true; return; }
+      trigger.hidden = true;
+      translationTrigger.hidden = host.dataset.state !== 'trigger' || !pageTranslationEnabled;
+      panel.hidden = host.dataset.state === 'trigger';
+      const first = rectangles[0], last = rectangles.at(-1), size = 24;
+      const left = first.left - size - 6 >= 4 ? first.left - size - 6 : first.left;
+      const top = first.left - size - 6 >= 4 ? first.top : first.top - size - 6 >= 4 ? first.top - size - 6 : first.bottom + 6;
+      Object.assign(translationTrigger.style, { width: `${size}px`, height: `${size}px`, left: `${clamp(left, 4, innerWidth - size - 4)}px`, top: `${clamp(top, 4, innerHeight - size - 4)}px` });
+      translationTrigger.title = `Translate selected page text to ${languages.options.find(option => option.code === pageTranslationLanguage).label}`;
+      if (!panel.hidden) {
+        const width = panel.offsetWidth, height = panel.offsetHeight;
+        panel.style.left = `${clamp(first.left, 8, innerWidth - width - 8)}px`;
+        panel.style.top = `${clamp(last.bottom + 6 + height + 8 > innerHeight ? first.top - height - 6 : last.bottom + 6, 8, innerHeight - height - 8)}px`;
+      }
+      return;
+    }
     const controls = controlLayout(current.target);
     if (!controls) { hide(); return; }
     const { size, left, top } = controls;
@@ -252,7 +284,7 @@
     if (translationEnabled) place(translationTrigger);
     place(trigger);
     const bulbLeft = cursorLeft, bulbTop = cursorTop;
-    translationTrigger.title = `Translate selected text to ${languages.options.find(option => option.code === translationLanguage).label}`;
+    translationTrigger.title = `${host.dataset.state === 'instant-translating' ? 'Translating' : instantTranslation ? 'Translate and replace selected text' : 'Translate selected text'} to ${languages.options.find(option => option.code === translationLanguage).label}`;
     if (!panel.hidden) {
       const point = anchor(current) || (!current.automatic ? { left: Math.max(4, bulbLeft), top: bulbTop, bottom: bulbTop + size } : null);
       if (!point || point.bottom < 0 || point.top > innerHeight) { hide(); return; }
@@ -265,37 +297,58 @@
   function readSelection() {
     const target = deepActiveElement();
     if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) {
-      if (!editableTarget(target)) return null;
       if (target instanceof HTMLInputElement && !['text', 'search', 'url', 'tel'].includes(target.type)) return null;
-      if (target.disabled || target.readOnly || target.selectionStart == null || target.selectionEnd <= target.selectionStart) return null;
+      if (target.disabled || target.selectionStart == null || target.selectionEnd <= target.selectionStart) return null;
+      if (target.readOnly) {
+        if (!pageTranslationEnabled || target.closest('[data-local-english-ignore]')) return null;
+        const text = target.value.slice(target.selectionStart, target.selectionEnd);
+        return text.trim() ? { kind: 'page-control', pageSelection: true, target, value: target.value, start: target.selectionStart, end: target.selectionEnd, text } : null;
+      }
+      if (!editableTarget(target)) return null;
       const text = target.value.slice(target.selectionStart, target.selectionEnd);
       if (!text.trim()) return null;
       return { kind: 'plain', target, value: target.value, start: target.selectionStart, end: target.selectionEnd, text };
     }
-    const range = selectedRange(target);
+    const range = selectedRange(target?.isContentEditable ? target : selectionOrigin?.isConnected ? selectionOrigin : target);
     if (!range || range.collapsed) return null;
     const start = range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer : range.startContainer.parentElement;
-    if (!start?.isContentEditable) return null;
-    const editor = start.closest('[contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"]');
-    if (!editor?.contains(range.endContainer)) return null;
+    if (!start || belongsToUI(start) || start.closest('[data-local-english-ignore], script, style, noscript')) return null;
+    const editor = start.isContentEditable ? start.closest('[contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"]') : null;
     const text = range.toString();
     if (!text.trim()) return null;
-    return { kind: 'rich', target: editor, value: editor.innerText, range: range.cloneRange(), text };
+    if (editor?.contains(range.endContainer)) return { kind: 'rich', target: editor, value: editor.innerText, range: range.cloneRange(), text };
+    if (!pageTranslationEnabled) return null;
+    const ancestor = range.commonAncestorContainer;
+    const container = ancestor.nodeType === Node.ELEMENT_NODE ? ancestor : ancestor.parentElement;
+    if (!container || belongsToUI(container)) return null;
+    const visibleText = selectionFor(selectionOrigin || target)?.toString() || text;
+    return { kind: 'page', pageSelection: true, target: container, range: range.cloneRange(), rangeText: text, text: visibleText };
   }
   function scan() {
     if (destroyed) return;
     try { if (!chrome.runtime?.id) { destroy(); return; } } catch { destroy(); return; }
+    // Updating a top-layer overlay during Chrome's native selection drag can
+    // disturb selection painting. Wait for release before exposing the UI.
+    if (selectionPointer !== null) return;
     // Buttons in our own shadow root may take focus without changing the saved selection.
-    if (host && belongsToUI(deepActiveElement()) && (!panel.hidden || !trigger.hidden)) return;
+    if (host && belongsToUI(deepActiveElement()) && (!panel.hidden || !trigger.hidden || !translationTrigger.hidden)) return;
+    if (current?.pageSelection && !panel.hidden) {
+      const node = (root.getSelection?.() || window.getSelection())?.anchorNode;
+      if (belongsToUI(node instanceof Element ? node : node?.parentElement)) return;
+    }
     if (current?.automatic && valid(current) && !panel.hidden) return;
     const next = readSelection();
     if (!next) { hide(); return; }
-    const sameRange = current && (next.kind === 'plain'
+    const sameRange = current && (next.kind === 'plain' || next.kind === 'page-control'
       ? current.start === next.start && current.end === next.end
       : current.range?.startContainer === next.range.startContainer && current.range.startOffset === next.range.startOffset && current.range.endContainer === next.range.endContainer && current.range.endOffset === next.range.endOffset);
     if (sameRange && valid(current) && current.target === next.target && current.text === next.text) { position(); return; }
     hide(); current = next; ensureUI();
-    host.dataset.state = 'trigger'; trigger.hidden = false; translationTrigger.hidden = !translationEnabled; panel.hidden = true;
+    host.dataset.state = 'trigger'; trigger.hidden = Boolean(current.pageSelection); translationTrigger.hidden = current.pageSelection ? !pageTranslationEnabled : !translationEnabled; panel.hidden = true;
+    if (current.pageSelection) {
+      visibilityObserver.observe(current.target);
+      pageObserver.observe(current.target, { subtree: true, childList: true, characterData: true });
+    }
     observer = new ResizeObserver(position); observer.observe(current.target);
     position();
   }
@@ -305,7 +358,7 @@
     hide();
     if (restore && valid(snapshot)) {
       snapshot.target.focus({ preventScroll: true });
-      if (snapshot.kind === 'plain') snapshot.target.setSelectionRange(snapshot.start, snapshot.end);
+      if (snapshot.kind === 'plain' || snapshot.kind === 'page-control') snapshot.target.setSelectionRange(snapshot.start, snapshot.end);
       else restoreRange(snapshot.target, snapshot.range);
     }
   }
@@ -319,6 +372,7 @@
   }
   function replacementError(snapshot, message) {
     if (!valid(snapshot)) { hide(); return; }
+    if (panel.hidden) { render('error', snapshot, { error: message }); return; }
     let note = panel.querySelector('.replace-error');
     if (!note) { note = element('p', 'message replace-error'); note.setAttribute('role', 'alert'); panel.querySelector('.body').append(note); }
     note.textContent = message; position();
@@ -376,11 +430,31 @@
     return removed.childNodes.length ? [correction, removed] : [correction];
   }
 
+  async function copyTranslation(snapshot, text, control) {
+    if (!valid(snapshot)) { hide(); return; }
+    try {
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const field = element('textarea'); field.value = text; field.setAttribute('aria-hidden', 'true');
+        Object.assign(field.style, { position: 'fixed', left: '-10000px', top: '0' }); root.append(field);
+        try { field.focus(); field.select(); if (!document.execCommand('copy')) throw new Error('Clipboard access was blocked.'); }
+        finally { field.remove(); }
+        if (snapshot.kind === 'page-control') { snapshot.target.focus({ preventScroll: true }); snapshot.target.setSelectionRange(snapshot.start, snapshot.end); }
+        else restoreRange(snapshot.target, snapshot.range);
+        control.focus({ preventScroll: true });
+      }
+      if (current === snapshot) control.textContent = 'Copied';
+    } catch { replacementError(snapshot, 'Could not copy the translation. Select and copy the translated text manually.'); }
+  }
+
   function render(state, snapshot, response) {
     ensureUI(); panel.replaceChildren(); panel.hidden = false; trigger.hidden = true; translationTrigger.hidden = true; host.dataset.state = state;
+    translationTrigger.disabled = false; translationTrigger.removeAttribute('aria-busy');
     const translating = snapshot.operation === 'translate';
     const targetLabel = languages.options.find(option => option.code === snapshot.translationLanguage)?.label;
-    panel.dataset.source = snapshot.automatic ? 'automatic' : 'selection';
+    panel.dataset.source = snapshot.pageSelection ? 'page' : snapshot.automatic ? 'automatic' : 'selection';
     const unchanged = state === 'result' && snapshot.text.trim() === response.result.corrected;
     const title = translating ? state === 'loading' ? `Translating to ${targetLabel}…` : state === 'result' ? `Translation · ${targetLabel}` : 'Couldn’t translate this text'
       : state === 'loading' ? 'Checking your writing…' : state === 'result'
@@ -393,42 +467,48 @@
     if (state === 'loading') {
       const message = element('p', 'message'); message.append(element('span', 'spinner'), document.createTextNode(translating ? 'Translating selected text…' : 'Checking selected text…')); body.append(message);
     } else if (state === 'result') {
+      if (snapshot.pageSelection) body.append(element('p', 'label', 'Selected text'), element('p', 'text page-original', snapshot.text), element('p', 'label', targetLabel));
       const [correction, removed] = translating ? [element('p', 'text correction', response.result.corrected)] : renderDiff(snapshot.text, response.result.corrected);
       body.append(correction);
-      const details = element('details', 'change-details');
-      details.append(element('summary', '', translating ? 'Show original' : 'Show changes'), element('p', 'label', 'Original'), element('p', 'text original', snapshot.text));
-      if (removed) details.append(removed);
-      details.append(element('p', 'message review-note', translating ? 'Review the translation before replacing your text.' : 'Review before using. The model can still miss errors.'));
-      on(details, 'toggle', position);
-      body.append(details);
-      const replace = button('Replace', 'action', () => replaceSelection(snapshot, response.result.corrected));
-      on(replace, 'pointerdown', event => event.preventDefault());
-      replace.disabled = unchanged;
-      if (unchanged) replace.title = 'No changes to replace';
-      actions.append(replace);
-      if (snapshot.automatic) actions.append(button('Ignore', 'action secondary', () => { automatic.ignore(snapshot); hide(); }));
-      if (snapshot.automatic) {
-        const { index, total } = automatic.navigation(snapshot);
-        if (index >= 0) {
-          const navigation = element('div', 'suggestion-navigation');
-          navigation.setAttribute('role', 'group'); navigation.setAttribute('aria-label', 'Suggestion navigation');
-          for (const [step, label, disabled] of [[-1, 'Previous suggestion', index === 0], [1, 'Next suggestion', index === total - 1]]) {
-            if (step === 1) {
-              const count = element('span', 'suggestion-position', `${index + 1} / ${total}`);
-              count.setAttribute('role', 'status'); navigation.append(count);
+      if (snapshot.pageSelection) {
+        const copy = button('Copy translation', 'action', () => copyTranslation(snapshot, response.result.corrected, copy));
+        actions.append(copy);
+      } else {
+        const details = element('details', 'change-details');
+        details.append(element('summary', '', translating ? 'Show original' : 'Show changes'), element('p', 'label', 'Original'), element('p', 'text original', snapshot.text));
+        if (removed) details.append(removed);
+        details.append(element('p', 'message review-note', translating ? 'Review the translation before replacing your text.' : 'Review before using. The model can still miss errors.'));
+        on(details, 'toggle', position);
+        body.append(details);
+        const replace = button('Replace', 'action', () => replaceSelection(snapshot, response.result.corrected));
+        on(replace, 'pointerdown', event => event.preventDefault());
+        replace.disabled = unchanged;
+        if (unchanged) replace.title = 'No changes to replace';
+        actions.append(replace);
+        if (snapshot.automatic) actions.append(button('Ignore', 'action secondary', () => { automatic.ignore(snapshot); hide(); }));
+        if (snapshot.automatic) {
+          const { index, total } = automatic.navigation(snapshot);
+          if (index >= 0) {
+            const navigation = element('div', 'suggestion-navigation');
+            navigation.setAttribute('role', 'group'); navigation.setAttribute('aria-label', 'Suggestion navigation');
+            for (const [step, label, disabled] of [[-1, 'Previous suggestion', index === 0], [1, 'Next suggestion', index === total - 1]]) {
+              if (step === 1) {
+                const count = element('span', 'suggestion-position', `${index + 1} / ${total}`);
+                count.setAttribute('role', 'status'); navigation.append(count);
+              }
+              const arrow = button(step < 0 ? '<' : '>', 'suggestion-nav', () => {
+                if (!automatic.navigate(snapshot, step)) return;
+                const preferred = panel.querySelector(`.suggestion-nav[data-step="${step}"]`);
+                const focus = preferred?.disabled ? panel.querySelector('.suggestion-nav:not(:disabled)') : preferred;
+                focus?.focus({ preventScroll: true });
+              });
+              arrow.dataset.step = String(step); arrow.disabled = disabled;
+              arrow.setAttribute('aria-label', label); arrow.title = label;
+              on(arrow, 'pointerdown', event => event.preventDefault());
+              navigation.append(arrow);
             }
-            const arrow = button(step < 0 ? '<' : '>', 'suggestion-nav', () => {
-              if (!automatic.navigate(snapshot, step)) return;
-              const preferred = panel.querySelector(`.suggestion-nav[data-step="${step}"]`);
-              const focus = preferred?.disabled ? panel.querySelector('.suggestion-nav:not(:disabled)') : preferred;
-              focus?.focus({ preventScroll: true });
-            });
-            arrow.dataset.step = String(step); arrow.disabled = disabled;
-            arrow.setAttribute('aria-label', label); arrow.title = label;
-            on(arrow, 'pointerdown', event => event.preventDefault());
-            navigation.append(arrow);
+            actions.append(navigation);
           }
-          actions.append(navigation);
         }
       }
     } else {
@@ -447,27 +527,37 @@
   }
   async function checkSelection(operation = 'correct') {
     if (!current || !valid(current)) { hide(); return; }
-    if (operation === 'translate' && !translationEnabled) { hide(); return; }
-    const snapshot = { ...current, operation, translationLanguage };
+    if (host.dataset.state === 'instant-translating') return;
+    if (operation === 'translate' && !(current.pageSelection ? pageTranslationEnabled : translationEnabled)) { hide(); return; }
+    const snapshot = { ...current, operation, translationLanguage: current.pageSelection ? pageTranslationLanguage : translationLanguage,
+      instant: operation === 'translate' && !current.pageSelection && instantTranslation };
     current = snapshot;
     // Keyboard activation hides the focused bulb when the card opens. Return
     // focus to the source first so the browser keeps its saved selection.
     if (belongsToUI(deepActiveElement())) {
       snapshot.target.focus({ preventScroll: true });
       if (!valid(snapshot)) { hide(); return; }
-      if (snapshot.kind === 'plain') snapshot.target.setSelectionRange(snapshot.start, snapshot.end);
+      if (snapshot.kind === 'plain' || snapshot.kind === 'page-control') snapshot.target.setSelectionRange(snapshot.start, snapshot.end);
       else restoreRange(snapshot.target, snapshot.range);
     }
     const version = ++requestVersion, language = automatic.language(), promptOverride = automatic.prompt();
-    render('loading', snapshot);
+    if (snapshot.instant) {
+      host.dataset.state = 'instant-translating'; panel.hidden = true; trigger.hidden = true;
+      translationTrigger.hidden = false; translationTrigger.disabled = true; translationTrigger.setAttribute('aria-busy', 'true'); position();
+    } else render('loading', snapshot);
     try {
-      const response = await send({ type: operation === 'translate' ? 'inline-translate' : 'inline-correct', text: snapshot.text, language: snapshot.translationLanguage });
+      const response = await send({ type: operation === 'translate' ? 'inline-translate' : 'inline-correct', text: snapshot.text, language: snapshot.translationLanguage, pageSelection: snapshot.pageSelection === true });
       if (destroyed || version !== requestVersion) return;
       if (!valid(snapshot)) { hide(); return; }
       const matches = operation === 'translate' ? response?.result?.operation === 'translate' && response.result.language === snapshot.translationLanguage
         : response?.result?.operation !== 'translate' && response?.result?.language === language && response.result.promptOverride === promptOverride;
       if (response?.result && !matches) {
         render('error', snapshot, { error: 'Correction settings changed. Please try again.' }); return;
+      }
+      if (response?.result && snapshot.instant) {
+        if (snapshot.text === response.result.corrected) hide();
+        else replaceSelection(snapshot, response.result.corrected);
+        return;
       }
       render(response?.result ? 'result' : 'error', snapshot, response || { error: 'The model workspace did not respond. Please try again.' });
     } catch (error) {
@@ -545,14 +635,15 @@
   function editorRects(snapshot, diagnostic = false) {
     if (!valid(snapshot)) return diagnostic ? { valid: false, raw: [], clipped: [] } : [];
     const target = snapshot.target, box = target.getBoundingClientRect();
-    const rectangles = snapshot.kind === 'plain' ? plainAnchor(snapshot, true) : [...snapshot.range.getClientRects()];
+    const isControl = snapshot.kind === 'plain' || snapshot.kind === 'page-control';
+    const rectangles = isControl ? plainAnchor(snapshot, true) : [...snapshot.range.getClientRects()];
     const clip = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
     const native = editorVisibility.get(target);
     if (native?.intersecting) {
       clip.left = Math.max(clip.left, box.left + native.insets.left); clip.top = Math.max(clip.top, box.top + native.insets.top);
       clip.right = Math.min(clip.right, box.right - native.insets.right); clip.bottom = Math.min(clip.bottom, box.bottom - native.insets.bottom);
     }
-    if (snapshot.kind === 'plain') {
+    if (isControl) {
       clip.left = Math.max(clip.left, box.left + target.clientLeft); clip.top = Math.max(clip.top, box.top + target.clientTop);
       clip.right = Math.min(clip.right, box.left + target.clientLeft + target.clientWidth); clip.bottom = Math.min(clip.bottom, box.top + target.clientTop + target.clientHeight);
     }
@@ -649,32 +740,53 @@
 
   function updateTranslationSettings(values) {
     const enabled = values.translationEnabled === true, language = languages.normalize(values.translationLanguage);
-    if (enabled === translationEnabled && language === translationLanguage) return;
+    const instant = values.instantTranslation === true;
+    const pageEnabled = values.pageTranslationEnabled === true, pageLanguage = languages.normalize(values.pageTranslationLanguage);
+    const editorChanged = enabled !== translationEnabled || language !== translationLanguage || instant !== instantTranslation;
+    const pageChanged = pageEnabled !== pageTranslationEnabled || pageLanguage !== pageTranslationLanguage;
+    if (!editorChanged && !pageChanged) return;
     translationEnabled = enabled; translationLanguage = language;
-    if (current?.operation === 'translate') hide();
+    instantTranslation = instant;
+    pageTranslationEnabled = pageEnabled; pageTranslationLanguage = pageLanguage;
+    if (current?.pageSelection ? pageChanged : editorChanged && current?.operation === 'translate') hide();
     if (host) {
-      translationTrigger.hidden = !enabled || host.dataset.state !== 'trigger';
+      translationTrigger.hidden = !(current?.pageSelection ? pageEnabled : enabled) || !['trigger', 'instant-translating'].includes(host.dataset.state);
       position();
     }
     schedule();
   }
   function translationSettingsListener(changes, area) {
-    if (area !== 'local' || (!changes.translationEnabled && !changes.translationLanguage)) return;
+    if (area !== 'local' || (!changes.translationEnabled && !changes.translationLanguage && !changes.instantTranslation && !changes.pageTranslationEnabled && !changes.pageTranslationLanguage)) return;
     updateTranslationSettings({
       translationEnabled: changes.translationEnabled ? changes.translationEnabled.newValue : translationEnabled,
       translationLanguage: changes.translationLanguage ? changes.translationLanguage.newValue : translationLanguage,
+      instantTranslation: changes.instantTranslation ? changes.instantTranslation.newValue : instantTranslation,
+      pageTranslationEnabled: changes.pageTranslationEnabled ? changes.pageTranslationEnabled.newValue : pageTranslationEnabled,
+      pageTranslationLanguage: changes.pageTranslationLanguage ? changes.pageTranslationLanguage.newValue : pageTranslationLanguage,
     });
   }
   chrome.storage.onChanged.addListener(translationSettingsListener);
-  chrome.storage.local.get({ translationEnabled: false, translationLanguage: languages.defaultLanguage }).then(updateTranslationSettings).catch(() => {});
+  chrome.storage.local.get({ translationEnabled: false, translationLanguage: languages.defaultLanguage, instantTranslation: false, pageTranslationEnabled: false, pageTranslationLanguage: languages.defaultLanguage }).then(updateTranslationSettings).catch(() => {});
 
   on(document, 'selectionchange', schedule);
   on(document, 'beforetoggle', event => { if (!insideUI(event)) topLayerDirty = true; }, { capture: true });
   on(document, 'select', schedule, { capture: true });
-  on(window, 'pointerup', event => { if (!insideUI(event)) schedule(); }, { capture: true });
-  on(window, 'keyup', event => { if (!insideUI(event)) schedule(); }, { capture: true });
+  on(window, 'pointerup', event => {
+    const selecting = selectionPointer === event.pointerId;
+    if (selecting) selectionPointer = null;
+    if (!insideUI(event)) { selectionOrigin = deepElementFromPoint(event.clientX, event.clientY); schedule(); }
+    else if (selecting) schedule();
+  }, { capture: true });
+  on(window, 'pointercancel', event => { if (selectionPointer === event.pointerId) { selectionPointer = null; hide(); } }, { capture: true });
+  on(window, 'blur', () => { selectionPointer = null; hide(); });
+  on(window, 'keyup', event => { if (!insideUI(event)) { const target = deepActiveElement(); if (target && target !== document.body && target !== document.documentElement) selectionOrigin = target; schedule(); } }, { capture: true });
   on(document, 'input', event => { if (!insideUI(event) && current) hide(); }, { capture: true });
-  on(document, 'pointerdown', event => { if (!insideUI(event)) hide(); }, { capture: true });
+  on(window, 'pointerdown', event => {
+    if (!insideUI(event)) {
+      if (event.isPrimary && event.button === 0) selectionPointer = event.pointerId;
+      hide();
+    }
+  }, { capture: true });
   on(document, 'keydown', event => { if (event.key === 'Escape' && current) { event.preventDefault(); close(); } }, { capture: true });
   on(window, 'scroll', position, { capture: true, passive: true });
   on(window, 'resize', position, { passive: true });

@@ -101,7 +101,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     cancelAutomatic(callerKey(sender)); respond({ cancelled: true }); return false;
   }
   if (['inline-correct', 'inline-translate', 'auto-correct'].includes(message.type)) {
-    const translation = message.type === 'inline-translate' ? { language: message.language } : null;
+    const translation = message.type === 'inline-translate' ? { language: message.language, pageSelection: message.pageSelection === true } : null;
     queueCorrection(message.text, sender, message.type === 'auto-correct', translation).then(respond);
   } else {
     const task = message.type === 'selected-text' ? queueSelection(message.text) : openWorkspace();
@@ -122,7 +122,7 @@ async function correctInline(text, translation = null) {
   }
   try {
     return await chrome.runtime.sendMessage({ target: 'model-workspace', type: 'correct-inline', text,
-      operation: translation ? 'translate' : 'correct', language: translation?.language });
+      operation: translation ? 'translate' : 'correct', language: translation?.language, pageSelection: translation?.pageSelection });
   } catch {
     return { error: 'The model workspace is unavailable. Open it and load your model again.', code: 'model-not-loaded' };
   }

@@ -17,7 +17,7 @@ $('gpu-settings').addEventListener('click', async event => {
 });
 const status = message => { $('status').textContent = message; };
 const model = new LocalModel(status);
-for (const id of ['target-language', 'translation-language']) {
+for (const id of ['target-language', 'translation-language', 'page-translation-language']) {
   $(id).replaceChildren(...languageTools.options.map(language => {
     const option = document.createElement('option'); option.value = language.code; option.textContent = language.label; return option;
   }));
@@ -29,6 +29,8 @@ let inlineBusy = false;
 let selectedFile = null, remembered = null, fileOperation = false, initialized = false, workspaceTabId;
 let contextSize = CONTEXT_SIZE, settingsSaving = false;
 let translationEnabled = false, translationLanguage = languageTools.defaultLanguage;
+let instantTranslation = false;
+let pageTranslationEnabled = false, pageTranslationLanguage = languageTools.defaultLanguage;
 let tokenKey = '', tokenPreview = null, tokenTimer = null, tokenRunning = false;
 let promptDirty = false, promptEditorKey = null;
 const promptKey = () => JSON.stringify([model.targetLanguage, model.customPrompt]);
@@ -107,6 +109,12 @@ function refresh() {
   $('translation-enabled').disabled = busy;
   $('translation-language').value = translationLanguage;
   $('translation-language').disabled = busy || !translationEnabled;
+  $('instant-translation').checked = instantTranslation;
+  $('instant-translation').disabled = busy || !translationEnabled;
+  $('page-translation-enabled').checked = pageTranslationEnabled;
+  $('page-translation-enabled').disabled = busy;
+  $('page-translation-language').value = pageTranslationLanguage;
+  $('page-translation-language').disabled = busy || !pageTranslationEnabled;
   $('custom-prompt').disabled = busy;
   $('save-prompt').disabled = busy || !promptDirty;
   $('default-prompt').disabled = busy;
@@ -174,12 +182,15 @@ async function loadFile(file, { remember = true, automatic = false, reload = fal
 async function restoreRememberedModel() {
   try {
     workspaceTabId = (await chrome.tabs.getCurrent())?.id;
-    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', translationEnabled: false, translationLanguage: languageTools.defaultLanguage });
+    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', translationEnabled: false, translationLanguage: languageTools.defaultLanguage, instantTranslation: false, pageTranslationEnabled: false, pageTranslationLanguage: languageTools.defaultLanguage });
     contextSize = normalizeContextSize(settings.contextSize) ?? CONTEXT_SIZE;
     setLanguage(settings.targetLanguage);
     setPrompt(settings.customPrompt);
     translationEnabled = settings.translationEnabled === true;
     translationLanguage = languageTools.normalize(settings.translationLanguage);
+    instantTranslation = settings.instantTranslation === true;
+    pageTranslationEnabled = settings.pageTranslationEnabled === true;
+    pageTranslationLanguage = languageTools.normalize(settings.pageTranslationLanguage);
     remembered = await savedModelInfo();
     if (remembered) {
       await setModelState('loading', '', workspaceTabId);
@@ -227,16 +238,29 @@ $('target-language').addEventListener('change', async () => {
   finally { settingsSaving = false; refresh(); }
 });
 async function saveTranslationSettings() {
-  const previous = { translationEnabled, translationLanguage };
+  const previous = { translationEnabled, translationLanguage, instantTranslation };
   translationEnabled = $('translation-enabled').checked;
   translationLanguage = languageTools.normalize($('translation-language').value);
+  instantTranslation = $('instant-translation').checked;
   settingsSaving = true; refresh();
-  try { await chrome.storage.local.set({ translationEnabled, translationLanguage }); }
-  catch (error) { ({ translationEnabled, translationLanguage } = previous); showError(error); }
+  try { await chrome.storage.local.set({ translationEnabled, translationLanguage, instantTranslation }); }
+  catch (error) { ({ translationEnabled, translationLanguage, instantTranslation } = previous); showError(error); }
   finally { settingsSaving = false; refresh(); }
 }
 $('translation-enabled').addEventListener('change', saveTranslationSettings);
 $('translation-language').addEventListener('change', saveTranslationSettings);
+$('instant-translation').addEventListener('change', saveTranslationSettings);
+async function savePageTranslationSettings() {
+  const previous = { pageTranslationEnabled, pageTranslationLanguage };
+  pageTranslationEnabled = $('page-translation-enabled').checked;
+  pageTranslationLanguage = languageTools.normalize($('page-translation-language').value);
+  settingsSaving = true; refresh();
+  try { await chrome.storage.local.set({ pageTranslationEnabled, pageTranslationLanguage }); }
+  catch (error) { ({ pageTranslationEnabled, pageTranslationLanguage } = previous); showError(error); }
+  finally { settingsSaving = false; refresh(); }
+}
+$('page-translation-enabled').addEventListener('change', savePageTranslationSettings);
+$('page-translation-language').addEventListener('change', savePageTranslationSettings);
 $('custom-prompt').addEventListener('input', () => { promptDirty = true; refresh(); });
 $('default-prompt').addEventListener('click', () => {
   $('custom-prompt').value = languageTools.instruction(model.targetLanguage); promptDirty = true; refresh(); $('custom-prompt').focus();
@@ -297,9 +321,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.autoCheck) $('auto-check').checked = changes.autoCheck.newValue !== false;
   if (area === 'local' && changes.targetLanguage) { setLanguage(changes.targetLanguage.newValue); refresh(); }
   if (area === 'local' && changes.customPrompt) { setPrompt(changes.customPrompt.newValue); refresh(); }
-  if (area === 'local' && (changes.translationEnabled || changes.translationLanguage)) {
+  if (area === 'local' && (changes.translationEnabled || changes.translationLanguage || changes.instantTranslation)) {
     if (changes.translationEnabled) translationEnabled = changes.translationEnabled.newValue === true;
     if (changes.translationLanguage) translationLanguage = languageTools.normalize(changes.translationLanguage.newValue);
+    if (changes.instantTranslation) instantTranslation = changes.instantTranslation.newValue === true;
+    refresh();
+  }
+  if (area === 'local' && (changes.pageTranslationEnabled || changes.pageTranslationLanguage)) {
+    if (changes.pageTranslationEnabled) pageTranslationEnabled = changes.pageTranslationEnabled.newValue === true;
+    if (changes.pageTranslationLanguage) pageTranslationLanguage = languageTools.normalize(changes.pageTranslationLanguage.newValue);
     refresh();
   }
   if (area === 'local' && changes.contextSize) {
@@ -333,22 +363,26 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (sender.id !== chrome.runtime.id || sender.tab || message?.target !== 'model-workspace' || message.type !== 'correct-inline') return false;
   if (!initialized || fileOperation) { respond({ error: 'Your saved model is loading. Try again in a moment.', code: 'engine-loading' }); return false; }
   const translating = message.operation === 'translate';
-  if (translating && !translationEnabled) { respond({ error: 'Enable translation in Settings first.', code: 'translation-disabled' }); return false; }
-  if (translating && languageTools.normalize(message.language) !== translationLanguage) { respond({ error: 'Translation language changed. Please try again.', code: 'superseded' }); return false; }
+  const enabled = message.pageSelection ? pageTranslationEnabled : translationEnabled;
+  const language = message.pageSelection ? pageTranslationLanguage : translationLanguage;
+  if (translating && !enabled) { respond({ error: 'Enable this translation option in Settings first.', code: 'translation-disabled' }); return false; }
+  if (translating && languageTools.normalize(message.language) !== language) { respond({ error: 'Translation language changed. Please try again.', code: 'superseded' }); return false; }
   if (!model.ready) { respond({ error: 'Load your model in Local English first, then try the icon again.', code: 'model-not-loaded' }); return false; }
   if (model.busy) { respond({ error: 'The model is checking another passage. Please try again in a moment.', code: 'engine-busy' }); return false; }
   // The workspace is also an inline-test surface. Keep its text box editable
   // and focused during an inline request, just like a normal webpage field.
   inlineBusy = true;
   status(translating ? 'Translating selected text…' : 'Checking writing…');
-  const checking = translating ? model.translate(message.text, translationLanguage) : model.correct(message.text);
+  const checking = translating ? model.translate(message.text, language) : model.correct(message.text);
   refresh();
   (async () => {
     let response;
     try {
       const correction = await checking;
       await setModelState('ready', '', workspaceTabId);
-      const settingsMatch = translating ? translationEnabled && correction.language === translationLanguage
+      const currentEnabled = message.pageSelection ? pageTranslationEnabled : translationEnabled;
+      const currentLanguage = message.pageSelection ? pageTranslationLanguage : translationLanguage;
+      const settingsMatch = translating ? currentEnabled && correction.language === currentLanguage
         : correction.language === model.targetLanguage && correction.promptOverride === model.customPrompt;
       response = settingsMatch ? { result: correction }
         : { error: 'Correction settings changed. Please try again.', code: 'superseded' };

@@ -24,6 +24,9 @@ input::file-selector-button { border: 1px solid #ccd9d0; border-radius: 5px; pad
 .setting-row--toggle { align-items: center; }
 .setting-row--toggle > label { padding-top: 0; }
 .setting-control { min-width: 0; }
+.page-translation-row { margin-top: 12px; }
+.settings-group[aria-labelledby="translation-settings-heading"] .setting-row:has(input:disabled, select:disabled) { opacity: .5; filter: grayscale(1); }
+.settings-group[aria-labelledby="translation-settings-heading"] :disabled { cursor: not-allowed; }
 .setting-control > p { margin: 6px 0 0; }
 .checkbox-control { display: flex; align-items: center; gap: 10px; min-height: 26px; }
 .checkbox-control input { accent-color: #18594e; width: 18px; height: 18px; margin: 0; cursor: pointer; flex-shrink: 0; }

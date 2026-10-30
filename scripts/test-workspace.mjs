@@ -7,6 +7,7 @@ import { testWorkspaceSettings } from './test-workspace-settings.mjs';
 import { testCorrectionLanguages } from './test-languages.mjs';
 import { testPromptSettings } from './test-prompts.mjs';
 import { testTranslation } from './test-translation.mjs';
+import { testPageTranslation } from './test-page-translation.mjs';
 
 await mkdir('artifacts', { recursive: true });
 await mkdir('.browser-check', { recursive: true });
@@ -38,6 +39,7 @@ try {
   await testCorrectionLanguages({ page, report });
   await testPromptSettings({ page, report });
   await testTranslation({ page, report });
+  await testPageTranslation({ page, context, report });
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(report.externalRequests, []);
   report.passed = true;

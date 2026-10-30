@@ -14,9 +14,13 @@ button { font-family: inherit; cursor: pointer; }
 .trigger { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; background: #fff; border: 1px solid #c5d7cb; border-radius: 50%; box-shadow: 0 1px 4px #0002; color: var(--local-english-accent, #18594e); z-index: 1; }
 .trigger svg { width: 75%; height: 75%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .trigger:hover { background: #f0f7f3; border-color: #73a68d; }
+.translate-trigger[aria-busy=true] { cursor: progress; }
+.translate-trigger[aria-busy=true] svg { visibility: hidden; }
+.translate-trigger[aria-busy=true]::after { content: ''; position: absolute; width: 13px; height: 13px; border: 2px solid #d8e6de; border-top-color: currentColor; border-radius: 50%; animation: spin .8s linear infinite; }
 .trigger:focus-visible, button:focus-visible { outline: 2px solid #409076; outline-offset: 2px; }
 .panel { background: #fff; border: 1px solid #b5d3c9; border-radius: 12px; box-shadow: 0 5px 20px #233d3324, 0 1px 3px #233d3314; width: min(480px, calc(100vw - 16px)); max-height: calc(100vh - 16px); padding: 17px 18px 16px 30px; overflow-y: auto; overscroll-behavior: contain; }
 .panel[data-source=automatic] { width: min(350px, calc(100vw - 16px)); }
+.page-original { max-height: 140px; overflow-y: auto; color: #65776f; }
 .panel::before { content: ''; position: absolute; top: 19px; bottom: 18px; left: 15px; width: 3px; border-radius: 3px; background: #278b77; }
 .heading { display: flex; align-items: start; gap: 12px; margin-bottom: 10px; color: #187b69; font-size: 15px; line-height: 21px; font-weight: 650; }
 .close { margin: -3px -6px 0 auto; flex-shrink: 0; border: 0; background: transparent; color: #6e7b75; font-size: 19px; line-height: 24px; padding: 0 5px; border-radius: 4px; }
@@ -60,4 +64,4 @@ button { font-family: inherit; cursor: pointer; }
 .trigger, .panel { z-index: 2; }
 .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid #d8e6de; border-top-color: #3f8b72; border-radius: 50%; margin-right: 7px; vertical-align: -2px; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .spinner, .translate-trigger[aria-busy=true]::after { animation: none; } }

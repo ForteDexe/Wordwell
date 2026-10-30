@@ -10,6 +10,7 @@
     "test:diff": "node --test scripts/text-diff.test.mjs",
     "test:budget": "node --test scripts/token-budget.test.mjs",
     "test:workspace": "node scripts/test-workspace.mjs",
+    "test:selection-drag": "node scripts/test-selection-drag.mjs --standalone",
     "test:extension": "node scripts/test-extension.mjs",
     "test:editors": "node scripts/test-editor-checks.mjs",
     "benchmark:extension": "node scripts/benchmark-extension.mjs"

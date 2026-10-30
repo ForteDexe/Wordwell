@@ -15,6 +15,7 @@ import { testWorkspaceSettings } from './test-workspace-settings.mjs';
 import { testCorrectionLanguages } from './test-languages.mjs';
 import { testPromptSettings } from './test-prompts.mjs';
 import { testTranslation } from './test-translation.mjs';
+import { testPageTranslation } from './test-page-translation.mjs';
 
 const extensionPath = path.resolve('dist/extension');
 const modelPath = process.env.MODEL_FILE_PATH || 'D:/LLM_Models/Qwen3.5-0.8B/Qwen3.5-0.8B-UD-Q6_K_XL.gguf';
@@ -417,6 +418,7 @@ try {
   await testCorrectionLanguages({ page, report });
   await testPromptSettings({ page, report });
   await testTranslation({ page, site, report });
+  await testPageTranslation({ page, site, context, report });
   await page.bringToFront();
   await page.click('#unload');
   await page.waitForFunction(() => !window.localEnglish.model.busy);
