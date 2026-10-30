@@ -10,6 +10,8 @@ import { testEditorDiagnostics } from './test-editor-diagnostics.mjs';
 import { testOverlayVisibility } from './test-overlay-visibility.mjs';
 import { testYouTubeGeometry } from './test-youtube-geometry.mjs';
 import { removeTestProfile } from './browser-profile.mjs';
+import { testTokenBudgeting } from './test-token-budget.mjs';
+import { testWorkspaceSettings } from './test-workspace-settings.mjs';
 
 const extensionPath = path.resolve('dist/extension');
 const modelPath = process.env.MODEL_FILE_PATH || 'D:/LLM_Models/Qwen3.5-0.8B/Qwen3.5-0.8B-UD-Q6_K_XL.gguf';
@@ -77,7 +79,7 @@ try {
   site.on('console', message => { if (message.type() === 'error') { report.consoleErrors.push(message.text()); console.error(message.text()); } });
   await site.goto(fixtureOrigin);
   const inlineHost = site.locator('local-english-selection');
-  const inlineTrigger = site.getByRole('button', { name: 'Check selected text with Local English', exact: true });
+  const inlineTrigger = site.getByRole('button', { name: 'Refine selected text', exact: true });
   async function selectField(selector, text) {
     await site.bringToFront();
     if (text !== undefined) await site.locator(selector).fill(text);
@@ -126,13 +128,29 @@ try {
   report.first = await correct('Yesterday I go to the shop and buy some milk.');
   assert.equal(report.first.corrected, 'Yesterday I went to the shop and bought some milk.');
   report.checks.push('Whole-sentence correction; original preserved');
+  await testTokenBudgeting({ page, report });
+
+  // Exercise the full selection route for a long, chunked passage, including
+  // the highlighted diff and Replace rather than only calling the engine.
+  const longSelection = report.tokenBudget.corrected.original.replaceAll('\r\n', '\n').replace('Item 1 is ready', 'Item 1 are ready');
+  await selectField('#paragraph', longSelection);
+  await inlineTrigger.waitFor({ state: 'visible' });
+  await inlineTrigger.click();
+  await inlineState('result');
+  assert.equal(await site.locator('#paragraph').inputValue(), longSelection);
+  const longReplacement = await inlineHost.locator('.correction').innerText();
+  assert.ok(longReplacement.includes('\n\n'), 'Chunked selection must preserve blank lines in the rendered correction');
+  await site.getByRole('button', { name: 'Replace', exact: true }).click();
+  assert.ok((await site.locator('#paragraph').inputValue()).includes('Item 1 is ready'));
+  assert.ok((await site.locator('#paragraph').inputValue()).includes('\n\n'));
+  report.checks.push('A selection beyond 1,600 characters checks, highlights changes, and replaces through the website UI');
 
   // The extension's own page must support the same inline flow as websites.
   await page.locator('#original').evaluate(field => {
     field.focus(); field.setSelectionRange(0, field.value.length);
     field.dispatchEvent(new Event('select', { bubbles: true }));
   });
-  const workspaceTrigger = page.getByRole('button', { name: 'Check selected text with Local English', exact: true });
+  const workspaceTrigger = page.getByRole('button', { name: 'Refine selected text', exact: true });
   await workspaceTrigger.waitFor({ state: 'visible' });
   await workspaceTrigger.click();
   await page.waitForFunction(() => document.querySelector('local-english-selection')?.dataset.state === 'result', undefined, { timeout: 120000 });
@@ -170,8 +188,8 @@ try {
   assert.match(await page.locator('#status').innerText(), /copied/);
   report.checks.push('Copy correction succeeds');
 
-  // Too-long text is rejected before inference and does not expose stale output.
-  await page.locator('#original').evaluate(element => { element.value = 'word '.repeat(400); element.dispatchEvent(new Event('input', { bubbles: true })); });
+  // A huge indivisible passage is rejected without exposing a partial result.
+  await page.locator('#original').evaluate(element => { element.value = 'word '.repeat(1500); element.dispatchEvent(new Event('input', { bubbles: true })); });
   await page.click('#correct');
   await page.waitForFunction(() => !document.getElementById('error').hidden);
   assert.match(await page.locator('#error').innerText(), /shorter/);
@@ -392,6 +410,7 @@ try {
   report.afterInline = await page.evaluate(() => window.localEnglish.snapshot());
   assert.equal(report.afterInline.loadCount, 1);
   assert.equal(report.afterInline.info.instanceId, loaded.info.instanceId);
+  await testWorkspaceSettings({ page, report });
   await page.bringToFront();
   await page.click('#unload');
   await page.waitForFunction(() => !window.localEnglish.model.busy);
@@ -408,7 +427,7 @@ try {
   assert.equal(await page.locator('#model-file').evaluate(input => input.files.length), 0);
   await page.waitForFunction(async () => await chrome.action.getBadgeText({}) === '');
   report.reloaded = await page.evaluate(() => window.localEnglish.snapshot());
-  assert.equal(report.reloaded.info.context, 1024);
+  assert.equal(report.reloaded.info.context, 1536);
   report.checks.push('Cached model autoloads after workspace reload without a file picker');
 
   // Close the entire browser, then reopen the same profile. onStartup must
@@ -426,7 +445,7 @@ try {
   await page.waitForFunction(() => window.localEnglish?.initialized, undefined, { timeout: 180000, polling: 100 });
   assert.equal(await page.evaluate(() => window.localEnglish.model.ready), true);
   report.restarted = await page.evaluate(() => window.localEnglish.snapshot());
-  assert.equal(report.restarted.info.context, 1024);
+  assert.equal(report.restarted.info.context, 1536);
   assert.equal(report.restarted.info.file, path.basename(modelPath));
   assert.equal(report.restarted.loadCount, 1);
   const startupContexts = await page.evaluate(() => chrome.runtime.getContexts({ contextTypes: ['TAB'], documentUrls: [chrome.runtime.getURL('workspace.html')] }));

@@ -48,7 +48,9 @@ button { font-family: inherit; cursor: pointer; }
 .suggestion-nav { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #245f50; font-size: 17px; line-height: 20px; }
 .suggestion-nav:hover:not(:disabled) { background: #eff7f2; color: #187b69; }
 .suggestion-nav:disabled { opacity: .3; cursor: default; }
-.auto-status { position: fixed; pointer-events: auto; display: grid; place-items: center; padding: 0; border: 1px solid #c5d7cb; border-radius: 50%; background: #fff; color: #18594e; box-shadow: 0 1px 4px #0002; font: 600 11px system-ui, sans-serif; z-index: 1; }
+.auto-status { position: fixed; pointer-events: auto; display: grid; place-items: center; padding: 0; border: 1px solid #c5d7cb; border-radius: 50%; background: #fff; color: var(--local-english-accent, #18594e); box-shadow: 0 1px 4px #0002; font: 600 11px system-ui, sans-serif; z-index: 1; }
+/* Theme the button's color (or accent variable); the vector has no fixed colors. */
+.auto-status .brand-icon { display: block; width: 75%; height: 75%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .auto-status[data-state=checking] { border-color: #409076; background: #eff8f1; }
 .auto-status[data-state=error] { color: #b42318; border-color: #dfaaaa; }
 .auto-status[data-state=paused] { color: #6e7781; }

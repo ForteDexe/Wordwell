@@ -111,7 +111,6 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
 
 async function correctInline(text) {
   if (typeof text !== 'string' || !text.trim()) return { error: 'Select a sentence to check.', code: 'invalid-text' };
-  if (text.length > 1600) return { error: 'Select a shorter passage (up to 1,600 characters).', code: 'invalid-text' };
   const contexts = await chrome.runtime.getContexts({ contextTypes: ['TAB'], documentUrls: [chrome.runtime.getURL(WORKSPACE)] });
   if (!contexts.length) {
     if (await savedModelInfo()) {

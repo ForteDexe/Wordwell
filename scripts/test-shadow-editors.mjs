@@ -39,7 +39,7 @@ export async function testShadowEditors({ page, site, report, loaded }) {
     }
   });
   const host = site.locator('local-english-selection');
-  const trigger = host.getByRole('button', { name: 'Check selected text with Local English', exact: true });
+  const trigger = host.getByRole('button', { name: 'Refine selected text', exact: true });
   const value = mode => site.evaluate(mode => {
     const editor = window.shadowFixture.editors[mode]; return 'value' in editor ? editor.value : editor.innerText;
   }, mode);

@@ -9,7 +9,7 @@
 </head>
 <body>
 <main>
-  <header><div class="brand"><span class="mark" aria-hidden="true">Aa</span><div><h1>Local English</h1><p>A little help with your English, on your computer.</p></div></div><span class="badge">Local model · 1k context</span></header>
+  <header><div class="brand"><span class="mark" aria-hidden="true">Aa</span><div><h1>Local English</h1><p>A little help with your English, on your computer.</p></div></div><span id="context-badge" class="badge">Local model · 1,024 context tokens</span></header>
   <aside class="performance-tip" aria-label="Performance tip">
     <strong>Speed tip for Windows</strong>
     <p>If your PC has a dedicated GPU, you may get faster checks: <a id="gpu-settings" href="chrome://flags/#force-high-performance-gpu" target="_blank" rel="noopener">open Chrome's GPU setting</a>, set <strong>Force High Performance GPU</strong> to <strong>Enabled</strong>, then relaunch Chrome. This applies to all Chrome tabs and may use more battery.</p>
@@ -19,23 +19,30 @@
     <div class="model-title"><h2 id="model-heading">Your model</h2><span id="model-state" class="state">Not loaded</span></div>
     <div class="model-controls"><label class="file-label">Choose a GGUF file<input id="model-file" type="file" accept=".gguf"></label><button id="load" disabled>Load model</button><button id="unload" class="secondary" disabled>Unload</button><button id="forget" class="secondary" disabled>Forget model</button></div>
     <p id="model-file-name" class="muted">Select your Qwen model to begin. The file stays on your computer.</p>
-    <p id="remember-state" class="small muted">Load a model once to remember it on this device.</p>
-    <p class="small muted">Keep this tab open to reuse the loaded model. Your saved model autoloads when the workspace or Chrome starts.</p>
+  </section>
+  <section class="settings-card" aria-labelledby="settings-heading">
+    <h2 id="settings-heading">Settings</h2>
+    <label class="auto-setting"><input id="auto-check" type="checkbox" checked> Check automatically after a typing pause</label>
+    <div class="context-setting">
+      <label for="context-size">Context size (tokens)</label>
+      <div class="context-controls"><input id="context-size" type="number" min="512" max="8192" step="256" value="1024" required aria-describedby="context-help context-validation"><button id="apply-context" class="secondary" hidden>Apply and reload model</button></div>
+      <p id="context-help" class="small muted">Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.</p>
+      <p id="context-validation" class="small" role="alert" hidden></p>
+    </div>
   </section>
   <section class="editor-card" aria-labelledby="editor-heading">
     <div class="editor-heading"><h2 id="editor-heading">Check a sentence</h2><button id="use-selection" class="secondary" hidden>Use new selected text</button></div>
     <p class="muted">Pause after typing to see correction underlines. Click an underline to review and replace a word or phrase. You can also select text and click the bulb beside the bottom-right suggestion count, or use right-click → Check with Local English.</p>
-    <label class="auto-setting"><input id="auto-check" type="checkbox" checked> Check automatically after a typing pause</label>
     <p class="small muted">The icon at the bottom-right of your text box spins while checking. Suggestions stay optional.</p>
     <div class="editors">
-      <div><label for="original">Original</label><textarea id="original" maxlength="1600" rows="9" placeholder="Write or paste your text here…" spellcheck="false"></textarea><span id="count" class="small muted">0 / 1,600 characters</span></div>
+      <div><label for="original">Original</label><textarea id="original" maxlength="50000" rows="9" placeholder="Write or paste your text here…" spellcheck="false"></textarea><div class="editor-counts small muted"><span id="count">0 / 50,000 characters</span><span id="token-count">0 / 1,024 prompt tokens</span></div></div>
       <div><label for="corrected">Suggested correction</label><textarea id="corrected" rows="9" readonly placeholder="Your correction will appear here." spellcheck="false"></textarea><span id="result-meta" class="small muted">Review the suggestion before using it.</span></div>
     </div>
     <div class="actions"><button id="correct" disabled>Check text</button><button id="copy" class="secondary" disabled>Copy correction</button><button id="clear" class="text-button">Clear text</button></div>
     <p id="status" role="status" aria-live="polite">Choose a model to get started.</p>
     <p id="error" role="alert" hidden></p>
   </section>
-  <footer><p>Suggestions are optional. “No changes suggested” does not mean the sentence is definitely correct.</p><details><summary>Engine details</summary><pre id="diagnostics">No model loaded.</pre></details><details id="editor-diagnostics-panel"><summary>Website editor diagnostics</summary><p>Right-click inside a failing text box and choose “Local English: Diagnose this editor”. Reports contain editor structure and status, without your comment text.</p><button id="copy-editor-diagnostics" class="secondary" disabled>Copy diagnostics</button><button id="clear-editor-diagnostics" class="text-button" disabled>Clear reports</button><p id="editor-diagnostic-status" role="status"></p><pre id="editor-diagnostics">No reports captured.</pre></details></footer>
+  <footer><details><summary>Engine details</summary><pre id="diagnostics">No model loaded.</pre></details><details id="editor-diagnostics-panel"><summary>Website editor diagnostics</summary><p>Right-click inside a failing text box and choose “Local English: Diagnose this editor”. Reports contain editor structure and status, without your comment text.</p><button id="copy-editor-diagnostics" class="secondary" disabled>Copy diagnostics</button><button id="clear-editor-diagnostics" class="text-button" disabled>Clear reports</button><p id="editor-diagnostic-status" role="status"></p><pre id="editor-diagnostics">No reports captured.</pre></details></footer>
 </main>
 <script type="module" src="workspace.js"></script>
 <script src="inline.js"></script>

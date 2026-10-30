@@ -55,3 +55,22 @@ test('changed range identifies insertions and deletions in the latest text', () 
   assert.deepEqual(writing.changedRange('One. He go home.', 'One. He goes home.'), { start: 10, end: 12 });
   assert.deepEqual(writing.changedRange('One. He go home.', 'One. He home.'), { start: 8, end: 8 });
 });
+
+test('large passages retain a small changed span without a full quadratic table', () => {
+  const edge = 'Unchanged words on either side. '.repeat(700);
+  const original = edge + 'He go home.' + edge;
+  const corrected = edge + 'He goes home.' + edge;
+  const parts = diffText(original, corrected);
+  assert.deepEqual(parts.filter(part => part.type === 'delete').map(part => part.text), ['go']);
+  assert.deepEqual(parts.filter(part => part.type === 'insert').map(part => part.text), ['goes']);
+  assert.equal(parts.filter(part => part.type !== 'insert').map(part => part.text).join(''), original);
+  assert.equal(parts.filter(part => part.type !== 'delete').map(part => part.text).join(''), corrected);
+});
+
+test('large rewrites use a bounded fallback that still reconstructs both inputs', () => {
+  const original = 'alpha '.repeat(2500), corrected = 'beta '.repeat(2500);
+  const parts = diffText(original, corrected);
+  assert.equal(parts.filter(part => part.type !== 'insert').map(part => part.text).join(''), original);
+  assert.equal(parts.filter(part => part.type !== 'delete').map(part => part.text).join(''), corrected);
+  assert.ok(parts.length <= 4);
+});

@@ -38,7 +38,7 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
   report.checks.push('Automatic sentence checks display clickable word underlines without opening a popup');
 
   await field.evaluate(node => { node.focus(); node.select(); node.dispatchEvent(new Event('select', { bubbles: true })); });
-  const bulb = host.getByRole('button', { name: 'Check selected text with Local English', exact: true });
+  const bulb = host.getByRole('button', { name: 'Refine selected text', exact: true });
   await bulb.waitFor({ state: 'visible' });
   const bulbBox = await bulb.boundingBox(), countBox = await status.boundingBox();
   assert.equal(await status.innerText(), '2');
@@ -73,6 +73,17 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
   report.checks.push('Suggestion navigation leaves the draft unchanged and runs no additional inference; the card Aa button is removed');
   await site.screenshot({ path: 'artifacts/automatic-suggestion.png', fullPage: true });
   await host.getByRole('button', { name: 'Replace', exact: true }).click();
+  try {
+    await site.waitForFunction(expected => document.querySelector('#paragraph').value === expected, 'Yesterday I went to the shop and buy some milk.', { timeout: 5000 });
+  } catch (error) {
+    report.automaticReplaceFailure = await site.evaluate(() => ({
+      field: document.querySelector('#paragraph').value,
+      focused: document.activeElement?.tagName,
+      panel: document.querySelector('local-english-selection')?.shadowRoot.querySelector('.panel')?.textContent,
+      selection: [document.querySelector('#paragraph').selectionStart, document.querySelector('#paragraph').selectionEnd],
+    }));
+    throw error;
+  }
   assert.equal(await field.inputValue(), 'Yesterday I went to the shop and buy some milk.');
   await state('waiting');
   await state('suggestions');
@@ -137,6 +148,19 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
   await field.focus();
   await state('idle');
   assert.equal(await status.getAttribute('aria-busy'), 'false');
+  const brand = status.locator('.brand-icon');
+  assert.equal(await brand.count(), 1);
+  assert.equal(await status.innerText(), '');
+  const defaultColor = await status.evaluate(node => getComputedStyle(node).color);
+  assert.equal(await brand.locator('path').first().evaluate(node => getComputedStyle(node).stroke), defaultColor);
+  await host.evaluate(node => node.style.setProperty('--local-english-accent', '#7856c8'));
+  assert.equal(await brand.locator('path').first().evaluate(node => getComputedStyle(node).stroke), 'rgb(120, 86, 200)');
+  assert.equal(await brand.locator('circle').evaluate(node => getComputedStyle(node).stroke), 'rgb(120, 86, 200)');
+  await site.screenshot({ path: 'artifacts/pen-brand-purple.png', fullPage: true });
+  await host.evaluate(node => node.style.removeProperty('--local-english-accent'));
+  assert.equal(await brand.locator('path').first().evaluate(node => getComputedStyle(node).stroke), defaultColor);
+  await site.screenshot({ path: 'artifacts/pen-brand-default.png', fullPage: true });
+  report.checks.push('The idle pen brand inherits the button color and updates immediately when the theme accent changes');
   report.checks.push('Moving to another field during inference does not leave a stale busy indicator');
 
   const single = site.locator('#sentence');
@@ -174,11 +198,11 @@ export async function testAutomaticChecking({ page, site, report, loaded }) {
   report.checks.push('IME composition waits until compositionend before scheduling a check');
 
   const beforeLong = await count();
-  await field.fill('word '.repeat(400));
+  await field.fill('word '.repeat(1500));
   await state('error');
   assert.match(await status.getAttribute('title'), /too long/);
-  assert.equal(await count(), beforeLong);
-  report.checks.push('Overlong automatic input shows a field error without sending it to the model');
+  assert.equal(await count(), beforeLong + 1);
+  report.checks.push('An indivisible over-budget sentence shows a field error without generating a truncated correction');
 
   // Requests from separate callers use one shared model. Later automatic work
   // from the same caller supersedes queued work before it reaches inference.

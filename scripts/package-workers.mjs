@@ -12,10 +12,15 @@ export async function packageWorkers(packageRoot, output) {
     if (!match) throw new Error(`Missing generated worker: ${name}`);
     return JSON.parse(match[1]);
   }
-  const nativeCode = literal('WLLAMA_EMSCRIPTEN_CODE');
+  const nativeCode = await readFile(new URL('../runtime/wllama/wllama.js', import.meta.url), 'utf8');
   let workerCode = literal('LLAMA_CPP_WORKER_CODE');
   const opfsCode = literal('OPFS_UTILS_WORKER_CODE');
-  const original = await readFile(path.join(packageRoot, 'esm/index.js'), 'utf8');
+  let original = await readFile(path.join(packageRoot, 'esm/index.js'), 'utf8');
+  const debugMap = await readFile(new URL('../runtime/wllama/source-map.ts', import.meta.url), 'utf8');
+  const table = debugMap.match(/export const WASM_SOURCE_MAP: Record<string, string> = (\{[\s\S]*?\});/)?.[1];
+  const oldMap = /var WASM_SOURCE_MAP = \{[\s\S]*?\n\};/;
+  if (!table || !oldMap.test(original)) throw new Error('Missing runtime debug symbol table');
+  original = original.replace(oldMap, () => `var WASM_SOURCE_MAP = ${table};`);
   const stub = original.match(/var JSPI_STUB = `([\s\S]*?)`;/)?.[1];
   if (!stub) throw new Error('Missing JSPI compatibility stub');
   const scriptBlob = '? argMainScriptBlob';
@@ -48,7 +53,19 @@ return Module;
 }
 `;
   await Promise.all([
-    writeFile(path.join(output, 'index.js'), original.slice(0, start) + factory + original.slice(end)),
+    writeFile(path.join(output, 'index.js'), original.slice(0, start) + factory + original.slice(end) + `
+// Native count uses the same chat formatter and tokenizer as completion.
+Wllama.prototype.countChatTokens = async function(options) {
+  this.checkModelLoaded();
+  const result = await this.proxy.wllamaAction('count_tokens', {
+    _name: 'cmpl_req', is_chat: true, files: [],
+    data_json: JSON.stringify({ ...options, chat_template_kwargs: { ...this.chatTemplateKwargs, ...options.chat_template_kwargs } }),
+  });
+  const count = JSON.parse(result.data_json);
+  if (!result.success || result.is_error) throw new Error(count.error || 'Could not count prompt tokens.');
+  return count;
+};
+`),
     writeFile(path.join(output, 'main-worker.js'), bootstrap + workerCode),
     writeFile(path.join(output, 'pthread-worker.js'), stub + nativeCode),
     writeFile(path.join(output, 'opfs-worker.js'), opfsCode),

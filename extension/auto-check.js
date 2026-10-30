@@ -5,7 +5,15 @@ export function createAutoChecker(api) {
   const { host, root } = ui();
   const records = new WeakMap();
   const underlines = element('div', 'auto-underlines');
-  const indicator = button('Aa', 'auto-status', statusClick);
+  const indicator = button('', 'auto-status', statusClick);
+  const svgNode = (name, attributes) => {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+    return node;
+  };
+  const brandIcon = svgNode('svg', { viewBox: '0 0 24 24', class: 'brand-icon', 'aria-hidden': 'true', focusable: 'false' });
+  brandIcon.append(svgNode('path', { d: 'M4 20l3-10L17 3l4 4-7 10-10 3Z' }),
+    svgNode('path', { d: 'm4 20 7-7m3-6 3 3' }), svgNode('circle', { cx: '12', cy: '12', r: '1.4' }));
   indicator.hidden = true;
   on(indicator, 'pointerdown', event => event.preventDefault());
   root.append(underlines, indicator);
@@ -91,9 +99,6 @@ export function createAutoChecker(api) {
     try {
       for (const passage of candidates) {
         if (!fresh(record, version, value) || record !== active) return;
-        if (passage.text.length > 1600) {
-          record.error = { error: 'This sentence is too long. Select a shorter passage to check.', code: 'invalid-text' }; continue;
-        }
         // Reject an unsupported rich-text boundary before sending anything.
         const source = editorSnapshot(record.target, passage.start, passage.end);
         if (!source || source.text !== passage.text) { lastPump = 'editor-range-unavailable'; continue; }
@@ -183,7 +188,8 @@ export function createAutoChecker(api) {
     indicator.dataset.state = state;
     indicator.title = `Local English: ${labels[state]}`; indicator.setAttribute('aria-label', indicator.title);
     indicator.setAttribute('aria-busy', String(state === 'checking'));
-    indicator.replaceChildren(state === 'checking' ? element('span', 'spinner') : document.createTextNode(state === 'suggestions' ? String(active.results.length) : state === 'error' ? '!' : state === 'waiting' ? '…' : state === 'paused' ? 'Ⅱ' : 'Aa'));
+    const glyph = state === 'suggestions' ? String(active.results.length) : state === 'error' ? '!' : state === 'waiting' ? '…' : state === 'paused' ? 'Ⅱ' : null;
+    indicator.replaceChildren(state === 'checking' ? element('span', 'spinner') : glyph === null ? brandIcon : document.createTextNode(glyph));
     if (!enabled) return;
     for (const result of active.results) {
       if (!refreshSnapshot(result)) continue;

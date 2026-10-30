@@ -33,7 +33,7 @@ export async function testOverlayVisibility({ page, site, worker, report }) {
   await site.waitForFunction(() => document.querySelector('local-english-selection')?.shadowRoot.querySelector('.auto-status')?.dataset.state === 'suggestions', undefined, { timeout: 120000 });
   await site.keyboard.press('Control+a');
   const host = site.locator('local-english-selection');
-  const trigger = host.getByRole('button', { name: 'Check selected text with Local English', exact: true });
+  const trigger = host.getByRole('button', { name: 'Refine selected text', exact: true });
   await trigger.waitFor({ state: 'visible' });
   const visibility = await host.evaluate(host => {
     const style = getComputedStyle(host), rect = host.getBoundingClientRect();

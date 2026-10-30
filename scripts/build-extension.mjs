@@ -23,11 +23,10 @@ await writeFile(path.join(output, 'inline.js'), inlineSource
   .replace("'__INLINE_WRITING_TOOLS__'", () => createWritingTools.toString())
   .replace("'__INLINE_AUTO_CHECKER__'", () => createAutoChecker.toString()));
 await mkdir(path.join(output, 'vendor/wasm'), { recursive: true });
-for (const file of ['index.js', 'wasm/wllama.wasm']) {
-  await cp(path.join(root, 'node_modules/@wllama/wllama/esm', file), path.join(output, 'vendor', file));
-}
+await cp(path.join(root, 'runtime/wllama/wllama.wasm'), path.join(output, 'vendor/wasm/wllama.wasm'));
 await packageWorkers(path.join(root, 'node_modules/@wllama/wllama'), path.join(output, 'vendor'));
 await cp(path.join(root, 'node_modules/@wllama/wllama/LICENCE'), path.join(output, 'vendor/LICENSE'));
-await writeFile(path.join(output, 'vendor/NOTICE.txt'), 'wllama 3.8.1: https://github.com/ngxson/wllama\nMIT license. Built-in llama.cpp runtime: b11364-46ca246.\n');
+await cp(path.join(root, 'runtime/wllama/LLAMA-LICENSE'), path.join(output, 'vendor/LLAMA-LICENSE'));
+await writeFile(path.join(output, 'vendor/NOTICE.txt'), 'wllama 3.8.1: https://github.com/ngxson/wllama\nMIT license. Built-in llama.cpp runtime: b11364-46ca246.\nLocal addition: exact chat prompt token counting. Source and rebuild instructions: runtime/wllama/.\n');
 const manifest = JSON.parse(await readFile(path.join(output, 'manifest.json'), 'utf8'));
 console.log(`${manifest.name} ${manifest.version}: ${output}`);

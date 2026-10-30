@@ -142,8 +142,8 @@
     const outline = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     outline.setAttribute('d', 'M9 16v-1.5c0-1.1-.8-2-1.5-2.8a6 6 0 1 1 9 0c-.7.8-1.5 1.7-1.5 2.8V16M9 17h6M10 20h4');
     bulb.append(outline); trigger.append(bulb);
-    trigger.setAttribute('aria-label', 'Check selected text with Local English');
-    trigger.title = 'Check selected text'; trigger.hidden = true;
+    trigger.setAttribute('aria-label', 'Refine selected text');
+    trigger.title = 'Refine selected text'; trigger.hidden = true;
     on(trigger, 'pointerdown', event => event.preventDefault());
     panel = element('section', 'panel'); panel.hidden = true;
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Local English suggestion');
@@ -378,6 +378,7 @@
       on(details, 'toggle', position);
       body.append(details);
       const replace = button('Replace', 'action', () => replaceSelection(snapshot, response.result.corrected));
+      on(replace, 'pointerdown', event => event.preventDefault());
       replace.disabled = unchanged;
       if (unchanged) replace.title = 'No changes to replace';
       actions.append(replace);
@@ -432,7 +433,6 @@
       else restoreRange(snapshot.target, snapshot.range);
     }
     const version = ++requestVersion;
-    if (snapshot.text.length > 1600) { render('error', snapshot, { error: 'Select a shorter passage (up to 1,600 characters).', code: 'invalid-text' }); return; }
     render('loading', snapshot);
     try {
       const response = await send({ type: 'inline-correct', text: snapshot.text });

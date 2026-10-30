@@ -1,6 +1,7 @@
 import { LocalModel } from './model-engine.js';
 import { savedModelInfo, savedModelFile, rememberModel, forgetModel } from './model-cache.js';
 import { setModelState } from './model-state.js';
+import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, outputAllowance } from './token-budget.js';
 
 const $ = id => document.getElementById(id);
 $('gpu-settings').addEventListener('click', async event => {
@@ -20,6 +21,46 @@ let pendingSelection = null;
 let lastSelectionId = null;
 let inlineBusy = false;
 let selectedFile = null, remembered = null, fileOperation = false, initialized = false, workspaceTabId;
+let contextSize = CONTEXT_SIZE, contextSaving = false;
+let tokenKey = '', tokenPreview = null, tokenTimer = null, tokenRunning = false;
+
+function refreshTokenCount() {
+  const text = $('original').value.trim(), activeContext = model.info?.context ?? contextSize;
+  const key = `${model.info?.instanceId || ''}\0${text}`;
+  if (key !== tokenKey) { tokenKey = key; tokenPreview = null; clearTimeout(tokenTimer); tokenTimer = null; }
+  const counter = $('token-count');
+  if (!text) {
+    counter.textContent = `0 / ${activeContext.toLocaleString()} prompt tokens`;
+    counter.title = 'Enter text to count the complete prompt, including instructions and chat formatting.';
+    return;
+  }
+  if (!model.ready) {
+    counter.textContent = `— / ${activeContext.toLocaleString()} prompt tokens`;
+    counter.title = 'Load a model to count tokens with its tokenizer.';
+    return;
+  }
+  if (tokenPreview) {
+    counter.textContent = `${tokenPreview.error ? '—' : tokenPreview.prompt_tokens.toLocaleString()} / ${activeContext.toLocaleString()} prompt tokens`;
+    if (tokenPreview.error) counter.title = `Token count unavailable: ${tokenPreview.error}`;
+    else {
+      const output = outputAllowance(tokenPreview.text_tokens);
+      const split = tokenPreview.prompt_tokens + output + CONTEXT_MARGIN > activeContext;
+      counter.title = `${tokenPreview.text_tokens.toLocaleString()} text tokens plus instructions and chat formatting. Reserves ${output.toLocaleString()} output tokens and ${CONTEXT_MARGIN} safety tokens.${split ? ' This text needs splitting into smaller checks.' : ''}`;
+    }
+    return;
+  }
+  counter.textContent = `… / ${activeContext.toLocaleString()} prompt tokens`;
+  counter.title = 'Counting with your loaded model. Counts wait while a check is running.';
+  if (model.busy || fileOperation || tokenTimer || tokenRunning) return;
+  tokenTimer = setTimeout(async () => {
+    tokenTimer = null; tokenRunning = true;
+    try {
+      const count = await model.countTokens(text);
+      if (key === tokenKey && count) tokenPreview = count;
+    } catch (error) { if (key === tokenKey) tokenPreview = { error: error.message }; }
+    finally { tokenRunning = false; refreshTokenCount(); }
+  }, 300);
+}
 
 function showError(error) {
   $('error').textContent = error.message; $('error').hidden = false;
@@ -27,7 +68,7 @@ function showError(error) {
 }
 function clearError() { $('error').hidden = true; $('error').textContent = ''; }
 function refresh() {
-  const busy = model.busy || fileOperation || !initialized;
+  const busy = model.busy || fileOperation || contextSaving || !initialized;
   $('load').disabled = busy || Boolean(model.runtime) || !selectedFile;
   $('unload').disabled = busy || !model.runtime;
   $('model-file').disabled = busy || Boolean(model.runtime);
@@ -38,11 +79,20 @@ function refresh() {
   $('copy').disabled = busy || !result;
   $('use-selection').hidden = !pendingSelection;
   $('use-selection').disabled = busy;
-  $('count').textContent = `${$('original').value.length.toLocaleString()} / 1,600 characters`;
+  $('count').textContent = `${$('original').value.length.toLocaleString()} / 50,000 characters`;
+  if (document.activeElement !== $('context-size')) $('context-size').value = String(contextSize);
+  $('context-size').disabled = busy;
+  const pendingContext = model.ready && model.info.context !== contextSize;
+  $('apply-context').hidden = !pendingContext;
+  $('apply-context').disabled = busy;
+  $('context-help').textContent = pendingContext
+    ? `Currently using ${model.info.context.toLocaleString()} tokens. Apply and reload the model to use ${contextSize.toLocaleString()}.`
+    : 'Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.';
+  $('context-badge').textContent = `Local model · ${(model.info?.context ?? contextSize).toLocaleString()} context tokens`;
+  refreshTokenCount();
   $('model-state').textContent = busy ? 'Working…' : model.ready ? 'Ready' : 'Not loaded';
   $('model-state').classList.toggle('ready', model.ready && !busy);
-  $('remember-state').textContent = remembered ? `Remembered on this device: ${remembered.name} · ${(remembered.bytes / 1e6).toFixed(0)} MB. Autoload is enabled.` : 'Load a model once to remember it on this device.';
-  $('diagnostics').textContent = JSON.stringify({ ...model.info, loadCount: model.loadCount, contextRequested: 1024, isolated: crossOriginIsolated }, null, 2);
+  $('diagnostics').textContent = JSON.stringify({ ...model.info, loadCount: model.loadCount, contextRequested: contextSize, isolated: crossOriginIsolated }, null, 2);
 }
 function clearResult() { result = null; $('corrected').value = ''; $('result-meta').textContent = 'Review the suggestion before using it.'; }
 function useSelection(selection) {
@@ -60,14 +110,15 @@ async function setKeepLoaded(loaded) {
   if (tab?.id !== undefined) await chrome.tabs.update(tab.id, { autoDiscardable: !loaded });
 }
 
-async function loadFile(file, { remember = true, automatic = false } = {}) {
+async function loadFile(file, { remember = true, automatic = false, reload = false } = {}) {
   fileOperation = true; clearError();
   selectedFile = file;
   $('model-file-name').textContent = `${file.name} · ${(file.size / 1e6).toFixed(0)} MB`;
   refresh();
   try {
     await setModelState('loading', '', workspaceTabId);
-    await model.load(file);
+    if (reload) await model.unload();
+    await model.load(file, { contextSize });
     await setKeepLoaded(true);
     if (remember) {
       status('Model loaded. Remembering a local copy…');
@@ -77,6 +128,7 @@ async function loadFile(file, { remember = true, automatic = false } = {}) {
     await setModelState('ready', '', workspaceTabId);
     status(`${automatic ? 'Saved model autoloaded' : 'Model ready'} · loaded in ${model.info.loadSeconds.toFixed(1)} seconds. It will be reused for each check.`);
   } catch (error) {
+    if (!model.ready) await setKeepLoaded(false).catch(() => {});
     showError(error);
     status(model.ready ? 'The model is loaded, but could not be remembered. See the error below.' : 'Model could not be loaded. Choose another file or try again.');
   } finally { fileOperation = false; refresh(); }
@@ -85,6 +137,8 @@ async function loadFile(file, { remember = true, automatic = false } = {}) {
 async function restoreRememberedModel() {
   try {
     workspaceTabId = (await chrome.tabs.getCurrent())?.id;
+    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE });
+    contextSize = normalizeContextSize(settings.contextSize) ?? CONTEXT_SIZE;
     remembered = await savedModelInfo();
     if (remembered) {
       await setModelState('loading', '', workspaceTabId);
@@ -107,6 +161,25 @@ $('model-file').addEventListener('change', () => {
 });
 $('load').addEventListener('click', async () => {
   if (selectedFile) await loadFile(selectedFile);
+});
+$('context-size').addEventListener('change', async () => {
+  const previous = contextSize, next = normalizeContextSize(Number($('context-size').value));
+  if (next === null) {
+    $('context-size').value = String(contextSize);
+    $('context-validation').textContent = 'Enter a whole number from 512 to 8,192 tokens.';
+    $('context-validation').hidden = false;
+    return;
+  }
+  $('context-validation').hidden = true;
+  $('context-size').value = String(next);
+  contextSize = next; contextSaving = true; refresh();
+  try { await chrome.storage.local.set({ contextSize }); }
+  catch (error) { contextSize = previous; showError(error); }
+  finally { contextSaving = false; refresh(); }
+});
+$('context-size').addEventListener('input', () => { $('context-validation').hidden = true; });
+$('apply-context').addEventListener('click', async () => {
+  if (selectedFile) await loadFile(selectedFile, { remember: false, reload: true });
 });
 $('unload').addEventListener('click', async () => {
   clearError();
@@ -148,6 +221,11 @@ $('use-selection').addEventListener('click', () => useSelection(pendingSelection
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'session' && changes.editorDiagnostics) showEditorDiagnostics(changes.editorDiagnostics.newValue || []);
   if (area === 'local' && changes.autoCheck) $('auto-check').checked = changes.autoCheck.newValue !== false;
+  if (area === 'local' && changes.contextSize) {
+    const next = changes.contextSize.newValue;
+    contextSize = normalizeContextSize(next) ?? CONTEXT_SIZE;
+    refresh();
+  }
   if (area === 'session' && changes.selection?.newValue) useSelection(changes.selection.newValue);
 });
 function showEditorDiagnostics(reports) {
