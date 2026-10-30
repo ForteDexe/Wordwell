@@ -164,7 +164,7 @@
     translationIcon.append(translationPath); translationTrigger.append(translationIcon);
     on(translationTrigger, 'pointerdown', event => event.preventDefault());
     panel = element('section', 'panel'); panel.hidden = true;
-    panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Local English suggestion');
+    panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Wordwell suggestion');
     root.append(trigger, translationTrigger, panel);
     document.documentElement.append(host);
     raiseUI(deepActiveElement());

@@ -2,7 +2,7 @@ The card surfaces and typography in inline.css are adapted from Harper:
 https://github.com/Automattic/harper/blob/3e85f2842e0685c6a9eb11ecb1267f66ddb7d678/packages/lint-framework/src/lint/SuggestionBox.ts
 
 Harper is licensed under Apache License 2.0. The license is included in
-licenses/harper-LICENSE.txt. Local English uses a local model for sentence
+licenses/harper-LICENSE.txt. Wordwell uses a local model for sentence
 corrections through manual selection and automatic typing-pause checks.
 It is not an official Harper release.
 

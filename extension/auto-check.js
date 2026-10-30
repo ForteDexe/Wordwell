@@ -199,7 +199,7 @@ export function createAutoChecker(api) {
     const state = running ? 'checking' : !enabled ? 'paused' : active.phase;
     const labels = { idle: 'Ready. Type to check automatically.', waiting: 'Waiting for a typing pause…', checking: enabled ? 'Checking grammar…' : 'Finishing the current check. Automatic checking is paused.', paused: 'Automatic checking is paused. Click to open settings.', checked: 'No changes suggested. The model can still miss errors.', suggestions: `${active.results.length} suggestion${active.results.length === 1 ? '' : 's'}. Click to review.`, error: active.error?.error || 'Could not check this text. Click to try again.' };
     indicator.dataset.state = state;
-    indicator.title = `Local English: ${labels[state]}`; indicator.setAttribute('aria-label', indicator.title);
+    indicator.title = `Wordwell: ${labels[state]}`; indicator.setAttribute('aria-label', indicator.title);
     indicator.setAttribute('aria-busy', String(state === 'checking'));
     const glyph = state === 'suggestions' ? String(active.results.length) : state === 'error' ? '!' : state === 'waiting' ? '…' : state === 'paused' ? 'Ⅱ' : null;
     indicator.replaceChildren(state === 'checking' ? element('span', 'spinner') : glyph === null ? brandIcon : document.createTextNode(glyph));

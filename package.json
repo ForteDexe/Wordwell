@@ -1,5 +1,5 @@
 {
-  "name": "local-english",
+  "name": "wordwell",
   "version": "0.5.6",
   "private": true,
   "type": "module",
@@ -7,6 +7,7 @@
     "start": "node scripts/serve.mjs",
     "test:engine": "node scripts/test-engine.mjs",
     "build:extension": "node scripts/build-extension.mjs",
+    "build:icons": "node scripts/build-icons.mjs",
     "test:diff": "node --test scripts/text-diff.test.mjs",
     "test:budget": "node --test scripts/token-budget.test.mjs",
     "test:workspace": "node scripts/test-workspace.mjs",

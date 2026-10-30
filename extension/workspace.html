@@ -3,16 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Local English</title>
-  <link rel="icon" href="data:,">
+  <title>Wordwell</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon32.png">
   <link rel="stylesheet" href="workspace.css">
 </head>
 <body>
 <main>
-  <header><div class="brand"><span class="mark" aria-hidden="true">Aa</span><div><h1>Local English</h1><p>A little help with your English, on your computer.</p></div></div><span id="context-badge" class="badge">Local model · 1,024 context tokens</span></header>
-  <aside class="performance-tip" aria-label="Performance tip">
-    <strong>Speed tip for Windows</strong>
-    <p>If your PC has a dedicated GPU, you may get faster checks: <a id="gpu-settings" href="chrome://flags/#force-high-performance-gpu" target="_blank" rel="noopener">open Chrome's GPU setting</a>, set <strong>Force High Performance GPU</strong> to <strong>Enabled</strong>, then relaunch Chrome. This applies to all Chrome tabs and may use more battery.</p>
+  <header><div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20l3-10L17 3l4 4-7 10-10 3Z"/><path d="m4 20 7-7m3-6 3 3"/><circle cx="12" cy="12" r="1.4"/></svg></span><div><h1>Wordwell</h1><p>Write clearly. Translate locally.</p></div></div><span id="context-badge" class="badge">Local model · 1,024 context tokens</span></header>
+  <aside class="performance-tip" aria-label="Tips">
+    <strong>Tips</strong>
+    <ul>
+      <li><a id="model-download" href="https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-UD-Q6_K_XL.gguf" target="_blank" rel="noopener noreferrer">Download Qwen3.5-0.8B (Q6_K_XL GGUF)</a>, then select the downloaded file below.</li>
+      <li>On Windows, if your PC has a dedicated GPU, you may get faster checks: <a id="gpu-settings" href="chrome://flags/#force-high-performance-gpu" target="_blank" rel="noopener">open Chrome's GPU setting</a>, set <strong>Force High Performance GPU</strong> to <strong>Enabled</strong>, then relaunch Chrome. This applies to all Chrome tabs and may use more battery.</li>
+    </ul>
     <p id="gpu-tip-status" role="status" hidden></p>
   </aside>
   <section class="model-card" aria-labelledby="model-heading">
@@ -31,8 +34,7 @@
       <div class="setting-row">
         <label for="target-language">Correction language</label>
         <div class="setting-control">
-          <select id="target-language" aria-describedby="language-help"><option value="en">English</option></select>
-          <p id="language-help" class="small muted">Correct text in this language. Results depend on the loaded model.</p>
+          <select id="target-language"><option value="en">English</option></select>
         </div>
       </div>
       <details class="prompt-setting" id="prompt-settings">
@@ -82,7 +84,7 @@
   </section>
   <section class="editor-card" aria-labelledby="editor-heading">
     <div class="editor-heading"><h2 id="editor-heading">Check a sentence</h2><button id="use-selection" class="secondary" hidden>Use new selected text</button></div>
-    <p class="muted">Pause after typing to see correction underlines. Click an underline to review and replace a word or phrase. You can also select text and click the bulb beside the bottom-right suggestion count, or use right-click → Check with Local English.</p>
+    <p class="muted">Pause after typing to see correction underlines. Click an underline to review and replace a word or phrase. You can also select text and click the bulb beside the bottom-right suggestion count, or use right-click → Check with Wordwell.</p>
     <p class="small muted">The icon at the bottom-right of your text box spins while checking. Suggestions stay optional.</p>
     <div class="editors">
       <div><label for="original">Original</label><textarea id="original" maxlength="50000" rows="9" placeholder="Write or paste your text here…" spellcheck="false"></textarea><div class="editor-counts small muted"><span id="count">0 / 50,000 characters</span><span id="token-count">0 / 1,024 prompt tokens</span></div></div>
@@ -92,7 +94,7 @@
     <p id="status" role="status" aria-live="polite">Choose a model to get started.</p>
     <p id="error" role="alert" hidden></p>
   </section>
-  <footer><details><summary>Engine details</summary><pre id="diagnostics">No model loaded.</pre></details><details id="editor-diagnostics-panel"><summary>Website editor diagnostics</summary><p>Right-click inside a failing text box and choose “Local English: Diagnose this editor”. Reports contain editor structure and status, without your comment text.</p><button id="copy-editor-diagnostics" class="secondary" disabled>Copy diagnostics</button><button id="clear-editor-diagnostics" class="text-button" disabled>Clear reports</button><p id="editor-diagnostic-status" role="status"></p><pre id="editor-diagnostics">No reports captured.</pre></details></footer>
+  <footer><details><summary>Engine details</summary><pre id="diagnostics">No model loaded.</pre></details><details id="editor-diagnostics-panel"><summary>Website editor diagnostics</summary><p>Right-click inside a failing text box and choose “Wordwell: Diagnose this editor”. Reports contain editor structure and status, without your comment text.</p><button id="copy-editor-diagnostics" class="secondary" disabled>Copy diagnostics</button><button id="clear-editor-diagnostics" class="text-button" disabled>Clear reports</button><p id="editor-diagnostic-status" role="status"></p><pre id="editor-diagnostics">No reports captured.</pre></details></footer>
 </main>
 <script type="module" src="workspace.js"></script>
 <script src="inline.js"></script>

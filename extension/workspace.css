@@ -2,11 +2,14 @@
 * { box-sizing: border-box; } body { margin: 0; } main { max-width: 1120px; margin: 44px auto; padding: 0 28px; }
 header, .brand, .model-title, .editor-heading, .model-controls, .actions { display: flex; align-items: center; gap: 16px; }
 header, .model-title, .editor-heading { justify-content: space-between; } header { margin-bottom: 32px; flex-wrap: wrap; }
-.mark { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 15px; background: #18594e; color: white; font: 27px Georgia, serif; }
+.mark { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 15px; background: var(--wordwell-accent, #18594e); color: white; flex-shrink: 0; }
+.mark svg { width: 42px; height: 42px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 h1 { margin: 0; font-size: 27px; letter-spacing: -.8px; } h2 { margin: 0; font-size: 18px; } p { margin: 8px 0; } header p { color: #647572; font-size: 14px; margin: 2px 0 0; }
 .badge { padding: 7px 12px; border: 1px solid #d4e0da; border-radius: 20px; background: #edf4ef; color: #416058; font-size: 12px; }
 .performance-tip { margin-bottom: 22px; padding: 14px 18px; border: 1px solid #cbded2; border-radius: 10px; background: #edf6f0; color: #385b4c; font-size: 14px; }
 .performance-tip p { margin: 4px 0 0; }
+.performance-tip ul { margin: 6px 0 0; padding-left: 20px; }
+.performance-tip li + li { margin-top: 6px; }
 .performance-tip a { color: #18594e; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .performance-tip a:focus-visible { outline: 2px solid #409076; outline-offset: 3px; }
 section { background: white; border: 1px solid #dde5df; border-radius: 14px; padding: 25px; margin-bottom: 22px; }
@@ -29,6 +32,7 @@ input::file-selector-button { border: 1px solid #ccd9d0; border-radius: 5px; pad
 .settings-group[aria-labelledby="translation-settings-heading"] :disabled { cursor: not-allowed; }
 .setting-control > p { margin: 6px 0 0; }
 .checkbox-control { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.checkbox-control > label { margin: 0; font-size: 12px; font-weight: 400; color: #65776f; cursor: pointer; }
 .checkbox-control input { accent-color: #18594e; width: 18px; height: 18px; margin: 0; cursor: pointer; flex-shrink: 0; }
 .setting-control select { width: 240px; max-width: 100%; border: 1px solid #cbd8d0; border-radius: 7px; padding: 9px 12px; font: inherit; color: #273d34; background: white; }
 .setting-control select:focus-visible { outline: 2px solid #409076; outline-offset: 3px; }

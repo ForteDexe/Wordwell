@@ -1,4 +1,4 @@
-# Local English
+# Wordwell
 
 Chrome extension for reviewing sentence corrections with a local GGUF model, including automatic checks after typing, correction underlines, a processing icon, and a Harper-style suggestion card. The standalone engine test remains available below.
 
@@ -14,7 +14,7 @@ npm run build:extension
 
 1. Open `chrome://extensions` and enable **Developer mode**.
 2. Click **Load unpacked** and select this repository's **`dist/extension`** folder.
-3. Pin **Local English**, then click its toolbar icon to open the workspace.
+3. Pin **Wordwell**, then click its toolbar icon to open the workspace.
 4. Choose `D:\LLM_Models\Qwen3.5-0.8B\Qwen3.5-0.8B-UD-Q6_K_XL.gguf` and click **Load model**.
 5. Type in the workspace's **Original** box or a webpage text box, then pause for **1.2 seconds**. The icon at the bottom-right spins while the model checks your writing. Click an underlined word or phrase to review it, then choose **Replace** or **Ignore**. After Replace, the updated sentence is checked again.
 6. You can still select text and click the **bulb** beside the suggestion count at the bottom-right of the text box for a manual sentence check. The bulb appears only while text is selected; the card opens near the selected passage. It shows one corrected passage, with added or changed words highlighted in green, and a **Replace** button. Expand **Show changes** to inspect the original and removed words. **Ctrl+Z** undoes a replacement. Automatic suggestion cards have **<** and **>** buttons with a position count to review the current text box's suggestions without running another check; arrows are disabled at the ends of the list.
@@ -55,9 +55,9 @@ The overlay host itself is protected from page styles as well as its shadow cont
 
 Automatic checking also follows changes made by the site's editor after its input event, including whitespace normalization. A change in the focused field restarts the typing-pause timer instead of cancelling checking. Only the focused field is sampled as a fallback for missing input events; other fields are not periodically scanned.
 
-If a website still fails, right-click inside its text box and choose **Local English: Diagnose this editor**. The workspace opens with **Website editor diagnostics** expanded. Repeat for other failing editors, then click **Copy diagnostics** and paste the report into the debugging conversation. The last five reports are kept for this browser session. Reports contain the hostname, extension version, editor structure, sizes, selection lengths, event counts, checking state, and overlay computed styles/positions/hit tests; they exclude comment text and password values. Nothing is uploaded automatically. **Clear reports** removes them. A missing content script produces its own report, so stale/inaccessible pages can be distinguished from editor bugs.
+If a website still fails, right-click inside its text box and choose **Wordwell: Diagnose this editor**. The workspace opens with **Website editor diagnostics** expanded. Repeat for other failing editors, then click **Copy diagnostics** and paste the report into the debugging conversation. The last five reports are kept for this browser session. Reports contain the hostname, extension version, editor structure, sizes, selection lengths, event counts, checking state, and overlay computed styles/positions/hit tests; they exclude comment text and password values. Nothing is uploaded automatically. **Clear reports** removes them. A missing content script produces its own report, so stale/inaccessible pages can be distinguished from editor bugs.
 
-You can also paste text in the workspace, or select webpage text, right-click, and choose **Check with Local English** to send it there. The workspace's standalone check retains **Copy correction** for this manual paste/check flow; use its underlines or inline selection icon for Replace. Every edit requires your acceptance. The content script has access to HTTP/HTTPS pages to display the writing UI. With automatic checking enabled, changed sentences in the field you are editing are sent to the local model after a pause. It does not scan every field on the page merely because the page opened.
+You can also paste text in the workspace, or select webpage text, right-click, and choose **Check with Wordwell** to send it there. The workspace's standalone check retains **Copy correction** for this manual paste/check flow; use its underlines or inline selection icon for Replace. Every edit requires your acceptance. The content script has access to HTTP/HTTPS pages to display the writing UI. With automatic checking enabled, changed sentences in the field you are editing are sent to the local model after a pause. It does not scan every field on the page merely because the page opened.
 
 After you load a model successfully, the extension remembers one local copy. It autoloads when the workspace is reopened or refreshed. When Chrome starts, the extension opens a background workspace tab and loads the saved model without another file-picker prompt. Keep that tab open to reuse the loaded model. Clicking the toolbar icon or sending another selection focuses the existing workspace rather than reloading it. The loaded tab is marked non-discardable to reduce automatic unloading.
 
@@ -85,7 +85,7 @@ The automated browser test uses a separate Chrome for Testing profile and your r
 
 Sources are in `extension/`; generated files are in `dist/extension/`. The build adapts wllama 3.8.1's generated Blob workers to packaged workers required by Chrome's MV3 content security policy. This adapter is version-guarded in `scripts/package-workers.mjs`; review it before upgrading wllama. The runtime includes a small native token-counting addition; its source, packaged binaries, licenses, and rebuild instructions are in [runtime/wllama](runtime/wllama/README.md). Third-party licensing is included under the generated `vendor/` folder. Run `npm run test:budget` for split-order and boundary tests; the real-model extension suite also verifies counts against inference usage and long-text corrections.
 
-The idle status button uses a monochrome SVG pen mark. Its strokes use `currentColor`, so changing the button's CSS `color` automatically recolors the whole icon. The `--local-english-accent` custom property on the overlay host controls its default accent, with teal as the fallback. The vector contains no fixed colors or bitmap assets.
+Wordwell uses a matching pen-nib mark in the workspace, text-box indicator, toolbar, and extension listing. The workspace and inline mark use `currentColor`; set `--wordwell-accent` to change their accent, with teal as the fallback. Inline overlays also accept the older `--local-english-accent` property. Chrome icons are PNGs exported from [extension/icons/wordwell.svg](extension/icons/wordwell.svg); run `npm run build:icons` after editing that vector master, then rebuild the extension. The exported sizes are 16, 32, 48, and 128 pixels.
 
 If the test browser has not been installed yet:
 
@@ -93,7 +93,7 @@ If the test browser has not been installed yet:
 npx playwright install chromium
 ```
 
-After rebuilding, reload Local English in `chrome://extensions`, accept any requested permissions, and refresh its workspace tab and the webpages where you want the selection icon. Browser-native clipping and expanded geometry diagnostics are in version **0.5.6**. On the first update to the remembered-model version, choose/load your model once to create the saved copy. Subsequent workspace/browser starts autoload it.
+After rebuilding, reload Wordwell in `chrome://extensions`, accept any requested permissions, and refresh its workspace tab and the webpages where you want the selection icon. Browser-native clipping and expanded geometry diagnostics are in version **0.5.6**. On the first update to the remembered-model version, choose/load your model once to create the saved copy. Subsequent workspace/browser starts autoload it.
 
 The inline card's surfaces and typography adapt Harper's `SuggestionBox.ts` (Apache-2.0). Attribution and the license are included in the extension. Automatic underlines come from the local model's proposed edits; Harper's original rule engine has not been added.
 

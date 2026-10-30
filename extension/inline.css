@@ -11,7 +11,7 @@
 [hidden] { display: none !important; }
 button { font-family: inherit; cursor: pointer; }
 .trigger, .panel { position: fixed; pointer-events: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; line-height: 20px; text-align: left; color: #1f2328; }
-.trigger { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; background: #fff; border: 1px solid #c5d7cb; border-radius: 50%; box-shadow: 0 1px 4px #0002; color: var(--local-english-accent, #18594e); z-index: 1; }
+.trigger { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; background: #fff; border: 1px solid #c5d7cb; border-radius: 50%; box-shadow: 0 1px 4px #0002; color: var(--wordwell-accent, var(--local-english-accent, #18594e)); z-index: 1; }
 .trigger svg { width: 75%; height: 75%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .trigger:hover { background: #f0f7f3; border-color: #73a68d; }
 .translate-trigger[aria-busy=true] { cursor: progress; }
@@ -52,7 +52,7 @@ button { font-family: inherit; cursor: pointer; }
 .suggestion-nav { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #245f50; font-size: 17px; line-height: 20px; }
 .suggestion-nav:hover:not(:disabled) { background: #eff7f2; color: #187b69; }
 .suggestion-nav:disabled { opacity: .3; cursor: default; }
-.auto-status { position: fixed; pointer-events: auto; display: grid; place-items: center; padding: 0; border: 1px solid #c5d7cb; border-radius: 50%; background: #fff; color: var(--local-english-accent, #18594e); box-shadow: 0 1px 4px #0002; font: 600 11px system-ui, sans-serif; z-index: 1; }
+.auto-status { position: fixed; pointer-events: auto; display: grid; place-items: center; padding: 0; border: 1px solid #c5d7cb; border-radius: 50%; background: #fff; color: var(--wordwell-accent, var(--local-english-accent, #18594e)); box-shadow: 0 1px 4px #0002; font: 600 11px system-ui, sans-serif; z-index: 1; }
 /* Theme the button's color (or accent variable); the vector has no fixed colors. */
 .auto-status .brand-icon { display: block; width: 75%; height: 75%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .auto-status[data-state=checking] { border-color: #409076; background: #eff8f1; }

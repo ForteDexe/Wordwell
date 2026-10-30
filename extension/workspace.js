@@ -171,7 +171,7 @@ async function loadFile(file, { remember = true, automatic = false, reload = fal
       remembered = await savedModelInfo();
     }
     await setModelState('ready', '', workspaceTabId);
-    status(`${automatic ? 'Saved model autoloaded' : 'Model ready'} · loaded in ${model.info.loadSeconds.toFixed(1)} seconds. It will be reused for each check.`);
+    status(`Loaded in ${model.info.loadSeconds.toFixed(1)} seconds`);
   } catch (error) {
     if (!model.ready) await setKeepLoaded(false).catch(() => {});
     showError(error);
@@ -367,7 +367,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   const language = message.pageSelection ? pageTranslationLanguage : translationLanguage;
   if (translating && !enabled) { respond({ error: 'Enable this translation option in Settings first.', code: 'translation-disabled' }); return false; }
   if (translating && languageTools.normalize(message.language) !== language) { respond({ error: 'Translation language changed. Please try again.', code: 'superseded' }); return false; }
-  if (!model.ready) { respond({ error: 'Load your model in Local English first, then try the icon again.', code: 'model-not-loaded' }); return false; }
+  if (!model.ready) { respond({ error: 'Load your model in Wordwell first, then try the icon again.', code: 'model-not-loaded' }); return false; }
   if (model.busy) { respond({ error: 'The model is checking another passage. Please try again in a moment.', code: 'engine-busy' }); return false; }
   // The workspace is also an inline-test surface. Keep its text box editable
   // and focused during an inline request, just like a normal webpage field.

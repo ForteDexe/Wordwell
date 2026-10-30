@@ -74,8 +74,8 @@ globalThis.localEnglishDiagnostics = { captureEditorDiagnostics };
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: MENU_ID, title: 'Check with Local English', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: DIAGNOSE_ID, title: 'Local English: Diagnose this editor', contexts: ['editable', 'selection', 'page'] });
+    chrome.contextMenus.create({ id: MENU_ID, title: 'Check with Wordwell', contexts: ['selection'] });
+    chrome.contextMenus.create({ id: DIAGNOSE_ID, title: 'Wordwell: Diagnose this editor', contexts: ['editable', 'selection', 'page'] });
   });
   restoreOnStartup().catch(error => setModelState('error', error.message));
 });
@@ -118,7 +118,7 @@ async function correctInline(text, translation = null) {
       await openWorkspace({ focus: false });
       return { error: 'Your saved model is loading. Try the icon again in a moment.', code: 'engine-loading' };
     }
-    return { error: 'Open Local English and load your model first.', code: 'model-not-loaded' };
+    return { error: 'Open Wordwell and load your model first.', code: 'model-not-loaded' };
   }
   try {
     return await chrome.runtime.sendMessage({ target: 'model-workspace', type: 'correct-inline', text,
