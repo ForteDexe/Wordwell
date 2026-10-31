@@ -9,31 +9,34 @@
 <body>
 <main>
   <h1>Wordwell privacy policy</h1>
-  <p class="muted">Effective date: October 30, 2026</p>
-  <p class="summary">Wordwell checks grammar and translates text using a model running on your device. Wordwell does not send your writing, translations, model files, or diagnostics to the developer or an inference service. There are no accounts, advertising, analytics, or telemetry in the extension.</p>
+  <p class="muted">Effective date: October 31, 2026</p>
+  <p class="summary">Wordwell checks grammar and translates text using either a model running in Chrome or a llama.cpp server that you run on your own computer. Wordwell does not send your writing, translations, model files, or diagnostics to the developer or a cloud inference service. There are no accounts, advertising, analytics, or telemetry in the extension.</p>
   <h2>Text processing</h2>
   <p>With automatic checking enabled, Wordwell reads text in the supported text box you are editing after a typing pause. Automatic checking is on by default and can be turned off in Settings. Manual correction and translation process the text you select or enter when you request a check. Page selection translation and text-box translation are separate options, both off by default. Password inputs and disabled fields are excluded.</p>
-  <p>Text, prompts, proposed corrections, translations, and sentence caches are processed in memory on your device. They are not saved as a writing history. Text sent through the context menu is temporarily held in Chrome's session storage until the workspace receives it, or until the browser session ends. Replacements require your action. Instant translation is checked by default but inactive while text-box translation is off. When text-box translation is enabled, Instant translation replaces the selected editable text after you click its translation icon. Uncheck Instant translation to review a preview before replacing.</p>
+  <p>In Browser model mode, text, prompts, proposed corrections, translations, and sentence caches are processed in Chrome on your device. In llama.cpp server mode, Wordwell sends the requested text and prompt to the loopback server address you configured, such as <code>http://127.0.0.1:8033</code>. Wordwell accepts only <code>127.0.0.1</code> and <code>localhost</code> HTTP addresses with an explicit port; it does not send inference requests to remote hosts. The llama.cpp process is software you start and control separately.</p>
+  <p>Writing is not saved as a history. Text sent through the context menu is temporarily held in Chrome's session storage until the workspace receives it, or until the browser session ends. Replacements require your action. Instant translation is checked by default but inactive while text-box translation is off. When text-box translation is enabled, Instant translation replaces the selected editable text after you click its translation icon. Uncheck Instant translation to review a preview before replacing.</p>
   <h2>Models and saved settings</h2>
   <p>When you load a GGUF file, Wordwell saves one unchanged copy in the extension's local IndexedDB storage so it can autoload without asking for the file again. The saved metadata includes the file name, size, and save time. Selecting and loading a different model replaces that saved copy. This uses disk space approximately equal to the model file's size.</p>
-  <p>Chrome's local extension storage holds settings such as languages, context size, automatic checking, translation options, a custom prompt if you save one, the autoload preference, and whether first-install setup has opened. Wordwell does not use Chrome storage sync to send these settings to another device.</p>
+  <p>Chrome's local extension storage holds settings such as the engine mode, loopback server URL, languages, browser-model context size, automatic checking, translation options, a custom prompt if you save one, and whether first-install setup has opened. Wordwell does not use Chrome storage sync to send these settings to another device. Server mode uses the model and context size configured in llama.cpp and does not copy that server's model into Chrome.</p>
   <h2>Diagnostics and clipboard</h2>
   <p>The optional benchmark processes bundled sample sentences and keeps its results, timing, and model metadata in the current workspace's memory. Download results saves that report to your device only when you click it. It does not include your website writing or upload the report.</p>
   <p>Editor diagnostics are generated only when you request them. The last five reports are kept in Chrome's session storage. Reports include the site's hostname, editor tags, IDs, classes and roles, sizes, selection lengths, extension state, and error metadata. They exclude the text you are writing and password values. Reports are not uploaded automatically. If you choose to copy and share a report for support, it is shared by your own action.</p>
   <p>Copy buttons write the requested correction, translation, or diagnostics to your clipboard. Wordwell does not read your clipboard. Local engine logs and the current workspace text remain in memory until cleared, replaced, or the workspace is closed.</p>
   <h2>External links</h2>
-  <p>The optional model download links open Hugging Face. The support and source links open GitHub. Those sites receive the ordinary browser requests made when you open them and have their own privacy policies. Wordwell does not attach your writing or diagnostics to these links. Grammar checking and translation work offline once a model has been downloaded and loaded. Chrome's own extension installation and update services are separate from Wordwell's text processing.</p>
+  <p>The optional model download links open Hugging Face. The support and source links open GitHub. Those sites receive the ordinary browser requests made when you open them and have their own privacy policies. Wordwell does not attach your writing or diagnostics to these links. Browser model mode works offline once a model has been downloaded and loaded. Server mode depends on the local llama.cpp process you configure. Chrome's own extension installation and update services are separate from Wordwell's text processing.</p>
   <h2>Your controls and retention</h2>
   <ul>
     <li>Turn off Automatic checking or either translation option in Settings to stop that feature.</li>
     <li>Use Clear text to clear the workspace text and result. Closing the workspace releases its text, engine, and in-memory caches.</li>
     <li>Use Clear reports to remove saved editor diagnostics. Session storage is also cleared when the browser session ends.</li>
     <li>Use Forget model to delete the saved model and disable autoload. An engine already in memory stays loaded until you use Unload or close its workspace.</li>
+    <li>Use Disconnect in server mode to stop Wordwell from sending requests to your local llama.cpp server. Closing the separately managed server is your responsibility.</li>
     <li>Saved settings and the cached model persist across browser starts until changed or removed. Uninstalling the extension removes its extension storage; it does not remove the original model file you downloaded or text already copied to your clipboard.</li>
   </ul>
   <h2>Permissions</h2>
   <ul>
     <li>Access to HTTP and HTTPS pages lets Wordwell show correction underlines and selection tools in supported fields and frames.</li>
+    <li>Access to <code>http://127.0.0.1/*</code> and <code>http://localhost/*</code> lets the optional server mode connect to a llama.cpp process running on your computer.</li>
     <li>Storage remembers preferences and session state.</li>
     <li>Unlimited storage supports the large local model copy without ordinary extension storage quota restrictions.</li>
     <li>Context menus provide selection checking and editor diagnostics.</li>

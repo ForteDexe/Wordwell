@@ -2,7 +2,7 @@
 
 **Write clearly. Translate locally.**
 
-Wordwell is a Chrome extension for grammar correction and translation with a GGUF model running on your device. It underlines suggested edits after a typing pause, refines selected writing, and translates selections in text boxes or ordinary webpage text. Your writing is not sent to an inference service.
+Wordwell is a Chrome extension for grammar correction and translation with a GGUF model running in Chrome or in your own local llama.cpp server. It underlines suggested edits after a typing pause, refines selected writing, and translates selections in text boxes or ordinary webpage text. Your writing is not sent to a cloud inference service.
 
 ## Get started
 
@@ -26,7 +26,7 @@ Long passages are budgeted with the model's tokenizer and split by newlines, per
 
 ## Privacy and storage
 
-Text processing stays on your device. Settings and one unchanged model copy are saved locally. No account, analytics, telemetry, or cloud inference is used. The optional model download and support links open third-party websites only when clicked.
+Text processing stays on your device. The default browser mode saves settings and one unchanged model copy locally. The optional server mode connects only to `127.0.0.1` or `localhost` and remembers that loopback URL; it uses the model/context configured by your separately managed llama.cpp process. No account, analytics, telemetry, or cloud inference is used. The optional model download and support links open third-party websites only when clicked.
 
 Unload releases the active engine. Forget model deletes the saved copy and disables autoload; an already-running engine stays available until unloaded or closed. Uninstalling removes extension storage and leaves your original downloaded GGUF alone.
 

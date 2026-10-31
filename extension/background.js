@@ -1,5 +1,6 @@
 import { savedModelInfo } from './model-cache.js';
 import { setModelState } from './model-state.js';
+import { ENGINE_DEFAULTS, normalizeEngineMode } from './settings.js';
 
 const WORKSPACE = 'workspace.html';
 const MENU_ID = 'correct-selection';
@@ -126,11 +127,12 @@ async function correctInline(text, translation = null) {
   if (typeof text !== 'string' || !text.trim()) return { error: 'Select a sentence to check.', code: 'invalid-text' };
   const contexts = await chrome.runtime.getContexts({ contextTypes: ['TAB'], documentUrls: [chrome.runtime.getURL(WORKSPACE)] });
   if (!contexts.length) {
-    if (await savedModelInfo()) {
+    const { engineMode } = await chrome.storage.local.get(ENGINE_DEFAULTS);
+    if (normalizeEngineMode(engineMode) === 'server' || await savedModelInfo()) {
       await openWorkspace({ focus: false });
-      return { error: 'Your saved model is loading. Try the icon again in a moment.', code: 'engine-loading' };
+      return { error: normalizeEngineMode(engineMode) === 'server' ? 'Wordwell is connecting to your llama.cpp server. Try the icon again in a moment.' : 'Your saved model is loading. Try the icon again in a moment.', code: 'engine-loading' };
     }
-    return { error: 'Open Wordwell and load your model first.', code: 'model-not-loaded' };
+    return { error: 'Open Wordwell and connect or load a model first.', code: 'model-not-loaded' };
   }
   try {
     return await chrome.runtime.sendMessage({ target: 'model-workspace', type: 'correct-inline', text,
@@ -141,5 +143,6 @@ async function correctInline(text, translation = null) {
 }
 
 async function restoreOnStartup() {
-  if (await savedModelInfo()) await openWorkspace({ focus: false });
+  const { engineMode } = await chrome.storage.local.get(ENGINE_DEFAULTS);
+  if (normalizeEngineMode(engineMode) === 'server' || await savedModelInfo()) await openWorkspace({ focus: false });
 }

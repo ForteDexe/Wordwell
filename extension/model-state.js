@@ -1,8 +1,8 @@
 export async function setModelState(state, detail = '', tabId) {
   const text = state === 'error' ? '!' : state === 'loading' ? '...' : '';
   const title = state === 'error' ? `Wordwell — Error: ${detail}`
-    : state === 'loading' ? 'Wordwell — Loading saved model…'
-    : state === 'ready' ? 'Wordwell — Model ready'
+    : state === 'loading' ? 'Wordwell — Starting engine…'
+    : state === 'ready' ? 'Wordwell — Engine ready'
     : 'Open Wordwell';
   await chrome.storage.session.set({ modelState: { state, detail, tabId } });
   await Promise.all([

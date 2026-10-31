@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
 
 export async function testDefaultSettings({ page, report }) {
-  const expected = { autoCheck: true, correctionLanguage: 'en', context: '1024', translationEnabled: false,
+  const expected = { engineMode: 'browser', autoCheck: true, correctionLanguage: 'en', context: '1024', translationEnabled: false,
     translationLanguage: 'zh-CN', instantTranslation: true, pageEnabled: false, pageLanguage: 'vi' };
   const snapshot = () => page.evaluate(() => {
     const get = id => document.getElementById(id);
-    return { autoCheck: get('auto-check').checked, correctionLanguage: get('target-language').value, context: get('context-size').value,
+    return { engineMode: get('engine-mode').value, autoCheck: get('auto-check').checked, correctionLanguage: get('target-language').value, context: get('context-size').value,
       translationEnabled: get('translation-enabled').checked, translationLanguage: get('translation-language').value,
       instantTranslation: get('instant-translation').checked, pageEnabled: get('page-translation-enabled').checked,
       pageLanguage: get('page-translation-language').value };
   });
   const reload = async () => { await page.reload(); await page.waitForFunction(() => window.localEnglish?.initialized); };
   assert.deepEqual(await snapshot(), expected);
+  assert.equal(await page.locator('#browser-engine').isVisible(), true);
+  assert.equal(await page.locator('#server-engine').isHidden(), true);
   for (const id of ['translation-language', 'instant-translation', 'page-translation-language']) assert.equal(await page.locator(`#${id}`).isDisabled(), true);
   assert.match(await page.locator('#prompt-status').innerText(), /default prompt/i);
   const qwenTip = page.locator('#model-download'), gemmaTip = page.locator('#gemma-model-download');
@@ -24,7 +26,7 @@ export async function testDefaultSettings({ page, report }) {
   const saved = { autoCheck: false, targetLanguage: 'fr', contextSize: 1536, translationEnabled: true,
     translationLanguage: 'es', instantTranslation: false, pageTranslationEnabled: true, pageTranslationLanguage: 'de' };
   await page.evaluate(values => chrome.storage.local.set(values), saved); await reload();
-  assert.deepEqual(await snapshot(), { autoCheck: false, correctionLanguage: 'fr', context: '1536', translationEnabled: true,
+  assert.deepEqual(await snapshot(), { engineMode: 'browser', autoCheck: false, correctionLanguage: 'fr', context: '1536', translationEnabled: true,
     translationLanguage: 'es', instantTranslation: false, pageEnabled: true, pageLanguage: 'de' });
   report.checks.push('Saved preferences, including instant mode explicitly set to false, override all new defaults');
   await page.evaluate(keys => chrome.storage.local.remove(keys), Object.keys(saved)); await reload();

@@ -32,6 +32,7 @@ test('a missing packaged worker is rejected', () => {
 test('version mismatches and changed permission/CSP declarations require review', () => {
   assert.throws(() => validatePackage(modifyManifest(m => { m.version = '99.0.0'; }), version), /manifest does not match/);
   assert.throws(() => validatePackage(modifyManifest(m => { m.permissions.push('history'); }), version), /changed release permissions/);
+  assert.throws(() => validatePackage(modifyManifest(m => { m.host_permissions.push('https://example.com/*'); }), version), /changed release host permissions/);
   assert.throws(() => validatePackage(modifyManifest(m => { m.content_security_policy.extension_pages += " script-src 'unsafe-eval';"; }), version), /Unexpected extension CSP/);
 });
 test('an invalid icon size is rejected', () => {

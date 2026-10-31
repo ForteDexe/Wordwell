@@ -15,6 +15,17 @@ h1 { margin: 0; font-size: 27px; letter-spacing: -.8px; } h2 { margin: 0; font-s
 section { background: white; border: 1px solid #dde5df; border-radius: 14px; padding: 25px; margin-bottom: 22px; }
 .model-title { margin-bottom: 16px; } .state { font-size: 12px; background: #f0f2f1; padding: 4px 10px; border-radius: 20px; color: #61736d; }
 .state.ready { background: #e4f4e9; color: #256442; } .model-controls { flex-wrap: wrap; gap: 10px; }
+.engine-choice { display: grid; grid-template-columns: 180px minmax(0, 320px); gap: 20px; align-items: center; margin-bottom: 20px; }
+.engine-choice label, .server-controls label, .browser-context > label { margin: 0; }
+.engine-choice select, .server-controls input { width: 100%; border: 1px solid #cbd8d0; border-radius: 7px; padding: 9px 12px; font: inherit; color: #273d34; background: white; }
+.engine-choice select:focus-visible, .server-controls input:focus-visible { outline: 2px solid #409076; outline-offset: 3px; }
+.engine-panel { padding: 18px; border: 1px solid #e2e9e4; border-radius: 10px; background: #f8faf8; }
+.browser-context, .server-controls { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 18px; }
+.browser-context > label, .server-controls > label { padding-top: 9px; }
+.server-controls { margin-top: 0; }
+.server-controls > div { display: flex; gap: 10px; align-items: start; flex-wrap: wrap; }
+.server-controls input { flex: 1 1 300px; }
+.server-controls .actions { flex-wrap: nowrap; }
 .file-label { font-size: 14px; flex: 1; min-width: 260px; } input[type=file] { display: block; width: 100%; margin-top: 6px; font: inherit; color: #586c65; }
 input::file-selector-button { border: 1px solid #ccd9d0; border-radius: 5px; padding: 7px 10px; margin-right: 10px; background: #f8faf8; cursor: pointer; }
 .muted { color: #65776f; font-size: 14px; } .small { font-size: 12px; } .editors { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 22px 0 18px; }
@@ -75,6 +86,9 @@ footer { font-size: 12px; color: #6a7a72; padding: 0 3px 24px; } summary { curso
 .benchmark-error { color: #844423; }
 @media (max-width: 720px) { main { margin-top: 25px; padding: 0 16px; } .editors { grid-template-columns: 1fr; } section { padding: 20px; } .badge { display: none; } }
 @media (max-width: 720px) {
+  .engine-choice, .browser-context, .server-controls { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .engine-choice select { max-width: none; }
+  .browser-context > label, .server-controls > label { padding-top: 0; }
   .setting-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .setting-row > label { padding-top: 0; }
   .setting-row--toggle { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }

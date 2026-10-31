@@ -6,7 +6,7 @@ Prepare the GitHub release and Chrome Web Store submission from the same tested 
 
 1. Run `npm ci` and `npx playwright install chromium`.
 2. Set `MODEL_FILE_PATH` if the verified GGUF is not in `models/`.
-3. Run `npm run test:budget`, `npm run test:diff`, `npm run test:package`, and `npm run test:release`.
+3. Run `npm run test:budget`, `npm run test:diff`, `npm run test:package`, `npm run test:server`, and `npm run test:release`.
 4. Confirm `dist/wordwell-VERSION.validation.json` passed and its `releaseSha256` matches `dist/wordwell-VERSION.zip.sha256`.
 5. Use the exact `dist/wordwell-VERSION.zip` that passed, together with its checksum. Model weights are downloaded separately and must not be added to this ZIP.
 6. Review `artifacts/store/` for three actual UI screenshots at 1280×800 and a 440×280 promotional image. The screenshots use a first-party writing demo and real local-model output. Check their wording and quality before upload.
@@ -41,7 +41,7 @@ Single purpose: Help users improve and translate writing using a local model, wi
 
 Explain that a separate compatible model download is required. The recommended Qwen3.5-0.8B UD-Q4_K_XL GGUF is about 559 MB, and Wordwell caches a copy for autoload. The Tips section also offers the tested Gemma 3 1B UD-Q3_K_XL alternative for stronger Vietnamese translation. Users keep the workspace open to reuse the engine. Quality and speed depend on the model/hardware. Avoid guarantees of perfect grammar, translation, or universal editor/model compatibility.
 
-Declare data handling consistently with `docs/privacy.html`: selected/edited website content is processed locally; settings and one model copy persist locally; requested diagnostic reports use session storage. No telemetry, advertisements, cloud inference, or automatic diagnostic uploads. External model/support links are user-initiated. Local-only processing still needs disclosure; do not equate it with not handling user data. Complete the dashboard's current questions according to their definitions.
+Declare data handling consistently with `docs/privacy.html`: selected/edited website content is processed either in Chrome or by the user's loopback llama.cpp server; settings and one browser-model copy persist locally; requested diagnostic reports use session storage. No telemetry, advertisements, cloud inference, or automatic diagnostic uploads. External model/support links are user-initiated. Local-only processing still needs disclosure; do not equate it with not handling user data. Complete the dashboard's current questions according to their definitions.
 
 Permission explanations:
 
@@ -50,12 +50,13 @@ Permission explanations:
 - `storage`: preferences and temporary session state.
 - `unlimitedStorage`: the large selected model copy for local autoload.
 - `clipboardWrite`: explicit Copy actions.
+- `http://127.0.0.1/*` and `http://localhost/*`: optional connection to a user-managed llama.cpp server on the same computer. Wordwell rejects remote server addresses.
 
 All executable JS, workers, and WASM are included in the package. The external download is a GGUF model file, not extension code. Model weights are not redistributed in the ZIP.
 
 ## Reviewer test instructions
 
-1. Use desktop Chrome 137+ and pin Wordwell. On first install, its setup workspace opens automatically in the foreground. No account, API key, local server, Python, Node, or command-line launcher is needed for the installed extension.
+1. Use desktop Chrome 137+ and pin Wordwell. On first install, its setup workspace opens automatically in the foreground. No account, API key, local server, Python, Node, or command-line launcher is needed for the default Browser model mode. The optional llama.cpp mode requires the user to run their own local server.
 2. Open Wordwell. Follow the recommended Qwen model download link in Tips, select the downloaded GGUF, and click Load model. Allow disk/memory for the roughly 559 MB model and its saved copy. Wait for Ready. Read the linked privacy policy.
 3. In Original, enter `Yesterday I go to the shop and buy some milk.` Use Check text and review the correction; the source remains editable. Output can vary by model.
 4. On a normal HTTP/HTTPS website, type the same sentence in a supported text box. Pause, click an underline, use Replace, then Ctrl+Z. Chrome internal and other restricted pages are not supported.
@@ -63,6 +64,7 @@ All executable JS, workers, and WASM are included in the package. The external d
 6. Enable Page selection translation and choose a target language. Select ordinary webpage text; the icon appears after mouse release. Translate and Copy. The page text stays unchanged.
 7. Close and restart Chrome. The cached model should autoload in one background workspace. Keep that workspace open while writing.
 8. Use Forget model to delete the saved copy, then Unload to release the current engine. It should not autoload on the next restart.
+9. Optional server mode: run a compatible `llama-server` on localhost with CORS enabled for Chrome extension origins, choose **Connect to llama.cpp server**, enter its loopback URL, and connect. Wordwell should show the server model/context and reconnect after a workspace reload. This mode is not required to review the default workflow.
 
 If automatic checking is unwanted, turn it off in Settings; manual checks remain available. The optional Windows GPU tip changes a browser-wide setting and is not required for correctness or installation.
 

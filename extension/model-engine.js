@@ -1,6 +1,7 @@
 import { Wllama } from './vendor/index.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, MAX_TEXT_LENGTH, planCorrection } from './token-budget.js';
 import { languageTools } from './languages.js';
+import { ENGINE_DEFAULTS, normalizeEngineMode, normalizeServerUrl } from './settings.js';
 
 export { CONTEXT_SIZE };
 export const INSTRUCTION = languageTools.instruction(languageTools.defaultLanguage);
@@ -18,6 +19,63 @@ export class LocalModel {
     this.tokenCountTask = Promise.resolve();
     this.targetLanguage = languageTools.defaultLanguage;
     this.customPrompt = '';
+    this.engineMode = ENGINE_DEFAULTS.engineMode;
+    this.serverUrl = ENGINE_DEFAULTS.serverUrl;
+    this.serverModel = null;
+  }
+
+  setMode(value) {
+    if (this.ready || this.busy) throw new Error('Disconnect the current engine before changing modes.');
+    this.engineMode = normalizeEngineMode(value);
+  }
+
+  async serverFetch(path, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), options.timeout ?? 10000);
+    const { timeout: _timeout, ...fetchOptions } = options;
+    try {
+      const response = await fetch(new URL(path.replace(/^\//, ''), `${this.serverUrl}/`), {
+        ...fetchOptions,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        signal: controller.signal,
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error?.message || data?.message || `${response.status} ${response.statusText}`);
+      return data;
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error(`The llama.cpp server at ${this.serverUrl} did not respond in time.`);
+      if (error instanceof TypeError) throw new Error(`Could not reach the llama.cpp server at ${this.serverUrl}. Check that it is running and allows Chrome extension connections.`);
+      throw error;
+    } finally { clearTimeout(timeout); }
+  }
+
+  async connectServer(value) {
+    if (this.busy || this.ready || this.runtime) throw new Error('Disconnect the current engine before connecting another.');
+    this.engineMode = 'server';
+    this.serverUrl = normalizeServerUrl(value);
+    this.busy = true;
+    const started = performance.now();
+    try {
+      this.onStatus('Connecting to your llama.cpp server…');
+      const [health, props] = await Promise.all([this.serverFetch('/health'), this.serverFetch('/props')]);
+      if (health?.status !== 'ok') throw new Error('The llama.cpp server is not ready.');
+      const context = Number(props?.default_generation_settings?.n_ctx);
+      if (!Number.isInteger(context) || context < 1) throw new Error('The server did not report a valid context size.');
+      this.serverModel = props.model_alias || props.model_path || 'llama.cpp model';
+      this.loadCount += 1;
+      this.info = {
+        engine: 'llama.cpp server', file: this.serverModel, model: this.serverModel,
+        context, backend: 'Dedicated llama.cpp server', endpoint: this.serverUrl,
+        serverBuild: props.build_info || null, slots: props.total_slots || null,
+        loadSeconds: (performance.now() - started) / 1000, instanceId: crypto.randomUUID(), loadCount: this.loadCount,
+      };
+      this.ready = true;
+      this.onStatus('Server connected. You can check your text.');
+      return this.info;
+    } catch (error) {
+      this.ready = false; this.info = null; this.serverModel = null;
+      throw error;
+    } finally { this.busy = false; }
   }
 
   log(level, ...values) {
@@ -28,6 +86,7 @@ export class LocalModel {
   }
 
   async load(file, { contextSize = CONTEXT_SIZE } = {}) {
+    if (this.engineMode !== 'browser') throw new Error('Switch to Browser model before loading a GGUF file.');
     if (this.busy || this.runtime) throw new Error('Unload the current model before loading another.');
     contextSize = normalizeContextSize(contextSize);
     if (contextSize === null) throw new Error('Enter a whole-number context size from 512 to 8,192 tokens in Settings.');
@@ -88,16 +147,40 @@ export class LocalModel {
   async countTokens(text) {
     if (!this.ready || this.busy) return null;
     const runtime = this.runtime;
+    const instanceId = this.info?.instanceId;
     const language = this.targetLanguage;
     const customPrompt = this.customPrompt;
     // Serialize previews with each other. Inference and unload wait for the
     // current preview; queued previews yield when either operation starts.
     const task = this.tokenCountTask.catch(() => {}).then(() => {
-      if (!this.ready || this.busy || this.runtime !== runtime || this.targetLanguage !== language || this.customPrompt !== customPrompt) return null;
-      return runtime.countChatTokens(this.chatRequest(text.trim(), language, customPrompt));
+      if (!this.ready || this.busy || this.info?.instanceId !== instanceId || this.runtime !== runtime || this.targetLanguage !== language || this.customPrompt !== customPrompt) return null;
+      return this.countRequestTokens(this.chatRequest(text.trim(), language, customPrompt), text.trim());
     });
     this.tokenCountTask = task;
     return task;
+  }
+
+  async tokenizeServer(content) {
+    const response = await this.serverFetch('/tokenize', { method: 'POST', body: JSON.stringify({ content, add_special: false, with_pieces: false }) });
+    if (!Array.isArray(response?.tokens)) throw new Error('The llama.cpp server returned an invalid token count.');
+    return response.tokens.length;
+  }
+
+  async countRequestTokens(request, text) {
+    if (this.engineMode === 'browser') return this.runtime.countChatTokens(request);
+    const applied = await this.serverFetch('/apply-template', { method: 'POST', body: JSON.stringify({ ...request, add_generation_prompt: true }) });
+    if (typeof applied?.prompt !== 'string') throw new Error('The llama.cpp server could not apply its chat template.');
+    const [prompt_tokens, text_tokens] = await Promise.all([this.tokenizeServer(applied.prompt), this.tokenizeServer(text)]);
+    return { prompt_tokens, text_tokens };
+  }
+
+  async createCompletion(request, maxTokens) {
+    const options = {
+      ...request, temperature: 0, seed: 42, max_tokens: maxTokens, top_p: 1, top_k: 1,
+      repeat_penalty: 1, presence_penalty: 0, stream: false,
+    };
+    if (this.engineMode === 'browser') return this.runtime.createChatCompletion({ ...options, cache_prompt: false });
+    return this.serverFetch('/v1/chat/completions', { method: 'POST', body: JSON.stringify({ ...options, model: this.serverModel }), timeout: 120000 });
   }
 
   correct(text) {
@@ -122,22 +205,19 @@ export class LocalModel {
       this.checkCount += 1;
       const contextSize = this.info.context;
       if (customPrompt) {
-        const base = await this.runtime.countChatTokens(request(''));
+        const base = await this.countRequestTokens(request(''), '');
         if (base.prompt_tokens + 128 + CONTEXT_MARGIN >= contextSize) throw new Error('The correction prompt leaves too little context. Shorten it or increase the context size.');
       }
       // Translation can expand substantially, especially between scripts.
       const allowance = translating ? tokens => Math.max(256, tokens * 3 + 32) : undefined;
-      const plan = await planCorrection(text, value => this.runtime.countChatTokens(request(value)), contextSize, allowance);
+      const plan = await planCorrection(text, value => this.countRequestTokens(request(value), value), contextSize, allowance);
       const chunks = plan.filter(part => part.text !== undefined);
       const output = [], budget = [], usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
       for (const part of plan) {
         if (part.literal !== undefined) { output.push(part.literal); continue; }
         if (chunks.length > 1) this.onStatus(`${translating ? 'Translating' : 'Checking'} section ${budget.length + 1} of ${chunks.length}…`);
         const maxTokens = translating ? contextSize - part.promptTokens - CONTEXT_MARGIN : part.maxTokens;
-        const response = await this.runtime.createChatCompletion({
-          ...request(part.text), temperature: 0, seed: 42, max_tokens: maxTokens, top_p: 1, top_k: 1,
-          repeat_penalty: 1, presence_penalty: 0, cache_prompt: false,
-        });
+        const response = await this.createCompletion(request(part.text), maxTokens);
         if (response.usage?.prompt_tokens !== part.promptTokens) throw new Error('The prompt token count changed. No correction was applied. Please try again.');
         const corrected = response.choices[0].message.content?.trim();
         if (response.choices[0].finish_reason !== 'stop') throw new Error(`The ${translating ? 'translation' : 'correction'} reached its output limit. Try a shorter passage.`);
@@ -158,6 +238,7 @@ export class LocalModel {
       await this.tokenCountTask.catch(() => {});
       await this.runtime?.exit();
       this.runtime = null;
+      this.serverModel = null;
       this.ready = false;
       this.info = null;
       this.onStatus('Model unloaded.');

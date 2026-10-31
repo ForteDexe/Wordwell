@@ -164,9 +164,9 @@ try {
   const longReplacement = await inlineHost.locator('.correction').innerText();
   assert.ok(longReplacement.includes('\n\n'), 'Chunked selection must preserve blank lines in the rendered correction');
   await site.getByRole('button', { name: 'Replace', exact: true }).click();
-  assert.ok((await site.locator('#paragraph').inputValue()).includes('Item 1 is ready'));
+  assert.equal(await site.locator('#paragraph').inputValue(), longReplacement);
   assert.ok((await site.locator('#paragraph').inputValue()).includes('\n\n'));
-  report.checks.push('A selection beyond 1,600 characters checks, highlights changes, and replaces through the website UI');
+  report.checks.push('A selection beyond 1,600 characters checks, preserves chunk boundaries, and replaces the complete model result through the website UI');
 
   // The extension's own page must support the same inline flow as websites.
   await page.locator('#original').evaluate(field => {

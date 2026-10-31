@@ -27,7 +27,7 @@ npm run test:workspace
 npm run test:extension
 ```
 
-`test:workspace` covers settings, exact token counts, prompt overrides, and translation. `test:extension` also covers the website UI, rich and shadow editors, native Undo, diagnostics, clipping, inference reuse, autoload after a full browser restart, and cache failures. It uses a fresh Chrome for Testing profile and the real local model. External HTTP requests are blocked except for its own local fixture server. Reports and screenshots go to ignored `artifacts/`; browser profiles and their model copies are removed at the end.
+`test:workspace` covers browser-model settings, exact token counts, prompt overrides, and translation. `test:server` starts a temporary fake llama.cpp loopback server and verifies connection metadata, exact token budgeting, correction, persisted reconnection, and switching back to browser mode. `test:extension` also covers the website UI, rich and shadow editors, native Undo, diagnostics, clipping, inference reuse, autoload after a full browser restart, and cache failures. It uses a fresh Chrome for Testing profile and the real local model. External HTTP requests are blocked except for its own local fixture server. Reports and screenshots go to ignored `artifacts/`; browser profiles and their model copies are removed at the end.
 
 `test:selection-drag` checks actual forward/backward mouse selection in document, open, and closed roots without loading a model. `test:editors` is a focused editor/geometry run. A passing functional test does not establish general language accuracy.
 

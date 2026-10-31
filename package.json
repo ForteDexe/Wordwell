@@ -14,6 +14,7 @@
     "test:diff": "node --test scripts/text-diff.test.mjs",
     "test:budget": "node --test scripts/token-budget.test.mjs",
     "test:workspace": "node scripts/test-workspace.mjs",
+    "test:server": "npm run build:extension && node scripts/test-server-mode.mjs",
     "test:selection-drag": "node scripts/test-selection-drag.mjs --standalone",
     "test:install": "node scripts/test-install.mjs",
     "test:extension": "node scripts/test-extension.mjs",

@@ -2,7 +2,7 @@ import { LocalModel } from './model-engine.js';
 import { savedModelInfo, savedModelFile, rememberModel, forgetModel } from './model-cache.js';
 import { setModelState } from './model-state.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, outputAllowance } from './token-budget.js';
-import { TRANSLATION_DEFAULTS } from './settings.js';
+import { TRANSLATION_DEFAULTS, ENGINE_DEFAULTS, normalizeEngineMode, normalizeServerUrl } from './settings.js';
 import { languageTools } from './languages.js';
 import { createBenchmark } from './benchmark.js';
 
@@ -31,6 +31,7 @@ let inlineBusy = false;
 let benchmark = null;
 let selectedFile = null, remembered = null, fileOperation = false, initialized = false, workspaceTabId;
 let contextSize = CONTEXT_SIZE, settingsSaving = false;
+let engineMode = ENGINE_DEFAULTS.engineMode, serverUrl = ENGINE_DEFAULTS.serverUrl;
 let { translationEnabled, translationLanguage, instantTranslation, pageTranslationEnabled, pageTranslationLanguage } = TRANSLATION_DEFAULTS;
 let tokenKey = '', tokenPreview = null, tokenTimer = null, tokenRunning = false;
 let promptDirty = false, promptEditorKey = null;
@@ -91,10 +92,22 @@ function showError(error) {
 function clearError() { $('error').hidden = true; $('error').textContent = ''; }
 function refresh() {
   const busy = model.busy || benchmark?.running || fileOperation || settingsSaving || !initialized;
-  $('load').disabled = busy || Boolean(model.runtime) || !selectedFile;
-  $('unload').disabled = busy || !model.runtime;
-  $('model-file').disabled = busy || Boolean(model.runtime);
-  $('forget').disabled = busy || !remembered;
+  const browserMode = engineMode === 'browser', serverMode = !browserMode;
+  $('engine-mode').value = engineMode;
+  $('engine-mode').disabled = busy;
+  $('browser-engine').hidden = !browserMode;
+  $('server-engine').hidden = !serverMode;
+  $('load').disabled = busy || !browserMode || Boolean(model.runtime) || !selectedFile;
+  $('unload').disabled = busy || !browserMode || !model.runtime;
+  $('model-file').disabled = busy || !browserMode || Boolean(model.runtime);
+  $('forget').disabled = busy || !browserMode || !remembered;
+  if (document.activeElement !== $('server-url')) $('server-url').value = serverUrl;
+  $('server-url').disabled = busy || !serverMode || model.ready;
+  $('connect-server').disabled = busy || !serverMode || model.ready;
+  $('disconnect-server').disabled = busy || !serverMode || !model.ready;
+  $('server-info').textContent = serverMode && model.ready
+    ? `${model.info.model} · ${model.info.context.toLocaleString()} context tokens · ${model.info.endpoint}`
+    : 'Not connected.';
   $('setup-privacy').hidden = model.ready || Boolean(remembered);
   $('correct').disabled = busy || !model.ready || !$('original').value.trim();
   $('original').disabled = busy && !inlineBusy;
@@ -104,7 +117,7 @@ function refresh() {
   $('use-selection').disabled = busy;
   $('count').textContent = `${$('original').value.length.toLocaleString()} / 50,000 characters`;
   if (document.activeElement !== $('context-size')) $('context-size').value = String(contextSize);
-  $('context-size').disabled = busy;
+  $('context-size').disabled = busy || !browserMode;
   $('target-language').value = model.targetLanguage;
   $('target-language').disabled = busy;
   $('translation-enabled').checked = translationEnabled;
@@ -121,17 +134,19 @@ function refresh() {
   $('save-prompt').disabled = busy || !promptDirty;
   $('default-prompt').disabled = busy;
   refreshPromptEditor();
-  const pendingContext = model.ready && model.info.context !== contextSize;
+  const pendingContext = browserMode && model.ready && model.info.context !== contextSize;
   $('apply-context').hidden = !pendingContext;
   $('apply-context').disabled = busy;
   $('context-help').textContent = pendingContext
     ? `Currently using ${model.info.context.toLocaleString()} tokens. Apply and reload the model to use ${contextSize.toLocaleString()}.`
     : 'Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.';
-  $('context-badge').textContent = `Local model · ${(model.info?.context ?? contextSize).toLocaleString()} context tokens`;
+  $('context-badge').textContent = serverMode
+    ? `llama.cpp server · ${(model.info?.context ?? '—').toLocaleString?.() ?? '—'} context tokens`
+    : `Browser model · ${(model.info?.context ?? contextSize).toLocaleString()} context tokens`;
   refreshTokenCount();
   $('model-state').textContent = busy ? 'Working…' : model.ready ? 'Ready' : 'Not loaded';
   $('model-state').classList.toggle('ready', model.ready && !busy);
-  $('diagnostics').textContent = JSON.stringify({ ...model.info, loadCount: model.loadCount, contextRequested: contextSize, targetLanguage: model.targetLanguage, isolated: crossOriginIsolated }, null, 2);
+  $('diagnostics').textContent = JSON.stringify({ ...model.info, engineMode, loadCount: model.loadCount, contextRequested: browserMode ? contextSize : undefined, targetLanguage: model.targetLanguage, isolated: crossOriginIsolated }, null, 2);
   benchmark?.refresh();
 }
 function clearResult() { result = null; $('corrected').value = ''; $('result-meta').textContent = 'Review the suggestion before using it.'; }
@@ -149,7 +164,7 @@ function useSelection(selection) {
   lastSelectionId = selection.id; pendingSelection = null;
   $('original').value = selection.text;
   clearResult(); clearError();
-  status(model.ready ? 'Selected text is ready to check.' : 'Selected text received. Load a model to check it.');
+  status(model.ready ? 'Selected text is ready to check.' : 'Selected text received. Connect or load a model to check it.');
   refresh();
   chrome.storage.session.remove('selection').catch(() => {});
 }
@@ -182,11 +197,33 @@ async function loadFile(file, { remember = true, automatic = false, reload = fal
   } finally { fileOperation = false; refresh(); }
 }
 
+async function connectServer({ automatic = false } = {}) {
+  const requestedUrl = $('server-url').value || serverUrl;
+  fileOperation = true; clearError(); refresh();
+  try {
+    const normalized = normalizeServerUrl(requestedUrl);
+    serverUrl = normalized;
+    await chrome.storage.local.set({ serverUrl });
+    await setModelState('loading', '', workspaceTabId);
+    await model.connectServer(serverUrl);
+    await setKeepLoaded(true);
+    await setModelState('ready', '', workspaceTabId);
+    status(`Connected in ${model.info.loadSeconds.toFixed(1)} seconds`);
+  } catch (error) {
+    await setKeepLoaded(false).catch(() => {});
+    showError(error);
+    status(automatic ? 'Could not reconnect to the llama.cpp server.' : 'Could not connect to the llama.cpp server.');
+  } finally { fileOperation = false; refresh(); }
+}
+
 async function restoreRememberedModel() {
   try {
     workspaceTabId = (await chrome.tabs.getCurrent())?.id;
-    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', ...TRANSLATION_DEFAULTS });
+    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', ...TRANSLATION_DEFAULTS, ...ENGINE_DEFAULTS });
     contextSize = normalizeContextSize(settings.contextSize) ?? CONTEXT_SIZE;
+    engineMode = normalizeEngineMode(settings.engineMode);
+    try { serverUrl = normalizeServerUrl(settings.serverUrl); } catch { serverUrl = ENGINE_DEFAULTS.serverUrl; }
+    model.setMode(engineMode);
     setLanguage(settings.targetLanguage);
     setPrompt(settings.customPrompt);
     translationEnabled = settings.translationEnabled === true;
@@ -195,7 +232,10 @@ async function restoreRememberedModel() {
     pageTranslationEnabled = settings.pageTranslationEnabled === true;
     pageTranslationLanguage = languageTools.normalize(settings.pageTranslationLanguage);
     remembered = await savedModelInfo();
-    if (remembered) {
+    if (engineMode === 'server') {
+      $('server-url').value = serverUrl;
+      await connectServer({ automatic: true });
+    } else if (remembered) {
       await setModelState('loading', '', workspaceTabId);
       status(`Autoloading ${remembered.name}…`); refresh();
       const file = await savedModelFile();
@@ -213,6 +253,37 @@ $('model-file').addEventListener('change', () => {
   selectedFile = file || null;
   $('model-file-name').textContent = file ? `${file.name} · ${(file.size / 1e6).toFixed(0)} MB` : 'Select your Qwen model to begin.';
   clearError(); refresh();
+});
+$('engine-mode').addEventListener('change', async () => {
+  const previous = engineMode, next = normalizeEngineMode($('engine-mode').value);
+  if (next === previous) return;
+  fileOperation = true; clearError(); refresh();
+  try {
+    if (model.ready) await model.unload();
+    await setKeepLoaded(false);
+    model.setMode(next);
+    engineMode = next;
+    await chrome.storage.local.set({ engineMode });
+    await setModelState('unloaded', '', workspaceTabId);
+  } catch (error) {
+    engineMode = previous;
+    if (!model.ready) model.setMode(previous);
+    showError(error);
+  } finally { fileOperation = false; refresh(); }
+  if (engineMode === 'server') await connectServer();
+  else if (remembered) {
+    const file = await savedModelFile();
+    if (file) await loadFile(file, { remember: false, automatic: true });
+  }
+});
+$('connect-server').addEventListener('click', () => connectServer());
+$('server-url').addEventListener('input', () => { clearError(); });
+$('disconnect-server').addEventListener('click', async () => {
+  clearError();
+  const unloading = model.unload(); refresh();
+  try { await unloading; await setKeepLoaded(false); await setModelState('unloaded', '', workspaceTabId); status('Disconnected from the llama.cpp server.'); }
+  catch (error) { showError(error); }
+  finally { refresh(); }
 });
 $('load').addEventListener('click', async () => {
   if (selectedFile) await loadFile(selectedFile);
@@ -370,7 +441,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   const language = message.pageSelection ? pageTranslationLanguage : translationLanguage;
   if (translating && !enabled) { respond({ error: 'Enable this translation option in Settings first.', code: 'translation-disabled' }); return false; }
   if (translating && languageTools.normalize(message.language) !== language) { respond({ error: 'Translation language changed. Please try again.', code: 'superseded' }); return false; }
-  if (!model.ready) { respond({ error: 'Load your model in Wordwell first, then try the icon again.', code: 'model-not-loaded' }); return false; }
+  if (!model.ready) { respond({ error: 'Load your model or connect to llama.cpp in Wordwell first, then try the icon again.', code: 'model-not-loaded' }); return false; }
   if (model.busy || benchmark?.running) { respond({ error: benchmark?.running ? 'The benchmark is running. Please try again when it finishes.' : 'The model is checking another passage. Please try again in a moment.', code: 'engine-busy' }); return false; }
   // The workspace is also an inline-test surface. Keep its text box editable
   // and focused during an inline request, just like a normal webpage field.

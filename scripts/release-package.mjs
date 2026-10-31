@@ -47,11 +47,14 @@ export function validatePackage(files, version) {
   for (const script of manifest.content_scripts || []) for (const name of [...(script.js || []), ...(script.css || [])]) requireFile(name);
   requireFile(manifest.background?.service_worker);
   const csp = manifest.content_security_policy?.extension_pages || '';
-  if (!csp.includes("'wasm-unsafe-eval'") || /'unsafe-eval'|'unsafe-inline'|https?:/.test(csp)) throw new Error('Unexpected extension CSP.');
+  const expectedCsp = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self' http://127.0.0.1:* http://localhost:*; style-src 'self'; img-src 'self' data:; object-src 'none';";
+  if (csp !== expectedCsp || /'unsafe-eval'|'unsafe-inline'|https:\/\//.test(csp)) throw new Error('Unexpected extension CSP.');
   if (Buffer.from(files['inline.js']).includes(Buffer.from('__INLINE_'))) throw new Error('Unbundled inline placeholder in release.');
   if (Buffer.from(files['vendor/wasm/wllama.wasm']).subarray(0, 4).toString('hex') !== '0061736d') throw new Error('Invalid packaged WASM.');
   const expected = ['clipboardWrite', 'contextMenus', 'storage', 'unlimitedStorage'];
   if (JSON.stringify([...(manifest.permissions || [])].sort()) !== JSON.stringify(expected)) throw new Error('Review changed release permissions.');
+  const expectedHosts = ['http://127.0.0.1/*', 'http://localhost/*'];
+  if (JSON.stringify([...(manifest.host_permissions || [])].sort()) !== JSON.stringify(expectedHosts)) throw new Error('Review changed release host permissions.');
   return manifest;
 }
 

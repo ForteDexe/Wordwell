@@ -21,9 +21,25 @@
   </aside>
   <section class="model-card" aria-labelledby="model-heading">
     <div class="model-title"><h2 id="model-heading">Your model</h2><span id="model-state" class="state">Not loaded</span></div>
-    <div class="model-controls"><label class="file-label">Choose a GGUF file<input id="model-file" type="file" accept=".gguf"></label><button id="load" disabled>Load model</button><button id="unload" class="secondary" disabled>Unload</button><button id="forget" class="secondary" disabled>Forget model</button></div>
-    <p id="model-file-name" class="muted">Select your Qwen model to begin. The file stays on your computer.</p>
-    <p id="setup-privacy" class="small muted">Wordwell processes your writing on this device. Loading a model enables local checks and saves a copy for autoload. <a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>
+    <div class="engine-choice"><label for="engine-mode">Engine</label><select id="engine-mode"><option value="browser">Run model in Chrome</option><option value="server">Connect to llama.cpp server</option></select></div>
+    <div id="browser-engine" class="engine-panel">
+      <div class="model-controls"><label class="file-label">Choose a GGUF file<input id="model-file" type="file" accept=".gguf"></label><button id="load" disabled>Load model</button><button id="unload" class="secondary" disabled>Unload</button><button id="forget" class="secondary" disabled>Forget model</button></div>
+      <p id="model-file-name" class="muted">Select your Qwen model to begin. The file stays on your computer.</p>
+      <div class="browser-context">
+        <label for="context-size">Context size (tokens)</label>
+        <div class="setting-control">
+          <div class="context-controls"><input id="context-size" type="number" min="512" max="8192" step="256" value="1024" required aria-describedby="context-help context-validation"><button id="apply-context" class="secondary" hidden>Apply and reload model</button></div>
+          <p id="context-help" class="small muted">Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.</p>
+          <p id="context-validation" class="small" role="alert" hidden></p>
+        </div>
+      </div>
+      <p id="setup-privacy" class="small muted">Wordwell processes your writing in Chrome. Loading a model saves a local copy for autoload. <a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>
+    </div>
+    <div id="server-engine" class="engine-panel" hidden>
+      <div class="server-controls"><label for="server-url">Server URL</label><div><input id="server-url" type="url" value="http://127.0.0.1:8033" spellcheck="false" aria-describedby="server-help"><div class="actions"><button id="connect-server">Connect</button><button id="disconnect-server" class="secondary" disabled>Disconnect</button></div></div></div>
+      <p id="server-help" class="small muted">Start llama-server yourself. Wordwell accepts only local addresses such as http://127.0.0.1:8033 and uses the model and context configured by that server.</p>
+      <p id="server-info" class="muted">Not connected.</p>
+    </div>
   </section>
   <section class="settings-card" aria-labelledby="settings-heading">
     <h2 id="settings-heading">Settings</h2>
@@ -70,17 +86,6 @@
       <div class="setting-row">
         <label for="page-translation-language">Page translation language</label>
         <div class="setting-control"><select id="page-translation-language" disabled><option value="vi">Vietnamese</option></select></div>
-      </div>
-    </div>
-    <div class="settings-group" role="group" aria-labelledby="model-settings-heading">
-      <h3 id="model-settings-heading">Model</h3>
-      <div class="setting-row">
-        <label for="context-size">Context size (tokens)</label>
-        <div class="setting-control">
-          <div class="context-controls"><input id="context-size" type="number" min="512" max="8192" step="256" value="1024" required aria-describedby="context-help context-validation"><button id="apply-context" class="secondary" hidden>Apply and reload model</button></div>
-          <p id="context-help" class="small muted">Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.</p>
-          <p id="context-validation" class="small" role="alert" hidden></p>
-        </div>
       </div>
     </div>
   </section>
