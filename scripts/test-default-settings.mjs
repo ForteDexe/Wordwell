@@ -14,7 +14,12 @@ export async function testDefaultSettings({ page, report }) {
   assert.deepEqual(await snapshot(), expected);
   for (const id of ['translation-language', 'instant-translation', 'page-translation-language']) assert.equal(await page.locator(`#${id}`).isDisabled(), true);
   assert.match(await page.locator('#prompt-status').innerText(), /default prompt/i);
-  report.checks.push('Fresh settings match English automatic correction, disabled Chinese/Vietnamese translation, checked inactive instant mode, and 1024 context');
+  const qwenTip = page.locator('#model-download'), gemmaTip = page.locator('#gemma-model-download');
+  assert.match(await qwenTip.getAttribute('href'), /Qwen3\.5-0\.8B-UD-Q4_K_XL\.gguf$/);
+  assert.match(await qwenTip.locator('xpath=..').innerText(), /recommended default.*Simplified Chinese/i);
+  assert.match(await gemmaTip.getAttribute('href'), /gemma-3-1b-it-UD-Q3_K_XL\.gguf$/);
+  assert.match(await gemmaTip.locator('xpath=..').innerText(), /Vietnamese.*rephrase already-correct text/i);
+  report.checks.push('Fresh settings and model tips match the English defaults, disabled translation, 1024 context, and benchmarked Qwen/Gemma recommendations');
 
   const saved = { autoCheck: false, targetLanguage: 'fr', contextSize: 1536, translationEnabled: true,
     translationLanguage: 'es', instantTranslation: false, pageTranslationEnabled: true, pageTranslationLanguage: 'de' };

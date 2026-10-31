@@ -6,11 +6,11 @@ Wordwell is a Chrome extension for grammar correction and translation with a GGU
 
 ## Get started
 
-Requirements: desktop Chrome 137 or newer, a compatible GGUF model, and enough memory and disk space for that model. A GPU can improve speed; performance and language quality depend on your hardware and model. The verified model below is about 771 MB. Wordwell saves an additional local copy for autoload.
+Requirements: desktop Chrome 137 or newer, a compatible GGUF model, and enough memory and disk space for that model. A GPU can improve speed; performance and language quality depend on your hardware and model. The recommended model below is about 559 MB. Wordwell saves an additional local copy for autoload.
 
 1. Install the published Chrome Web Store version when available, or download and unzip a [GitHub release](https://github.com/ForteDexe/Wordwell/releases). For an unpacked install, open `chrome://extensions`, enable Developer mode, choose Load unpacked, and select the extracted folder containing `manifest.json`. Developers can [build locally](development.md) and load `dist/extension` instead.
 2. The workspace opens automatically on first install so you can load a model and review Settings. Pin Wordwell and use its toolbar icon to reopen the workspace later.
-3. [Download Qwen3.5-0.8B UD-Q6_K_XL GGUF](https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-UD-Q6_K_XL.gguf). Select the downloaded file in Wordwell and click Load model. Other models need separate compatibility and quality checks; a GGUF extension alone does not guarantee support. This version accepts one file under 2 GiB.
+3. [Download Qwen3.5-0.8B UD-Q4_K_XL GGUF](https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-UD-Q4_K_XL.gguf). It is the recommended default for its size, speed, conservative corrections, and Simplified Chinese translation. [Gemma 3 1B UD-Q3_K_XL](https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-UD-Q3_K_XL.gguf) is a larger alternative that performed better for Vietnamese translation but rephrased correct text more readily. Select one downloaded file in Wordwell and click Load model. Other models need separate compatibility and quality checks; a GGUF extension alone does not guarantee support. This version accepts one file under 2 GiB.
 4. Keep the workspace tab open while writing. A saved model autoloads on later Chrome starts; the engine is reused for each check.
 5. Type in a supported webpage text box and pause for 1.2 seconds. Click an underline to review a suggestion, then Replace or Ignore. Ctrl+Z undoes a replacement.
 

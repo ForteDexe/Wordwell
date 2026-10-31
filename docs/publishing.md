@@ -39,7 +39,7 @@ Short description: **Write clearly. Translate locally. Grammar correction and tr
 
 Single purpose: Help users improve and translate writing using a local model, with reviewable grammar suggestions and explicit selection translation.
 
-Explain that a separate compatible model download is required. The verified Qwen3.5-0.8B UD-Q6_K_XL GGUF is about 771 MB, and Wordwell caches a copy for autoload. Users keep the workspace open to reuse the engine. Quality and speed depend on the model/hardware. Avoid guarantees of perfect grammar or universal editor/model compatibility.
+Explain that a separate compatible model download is required. The recommended Qwen3.5-0.8B UD-Q4_K_XL GGUF is about 559 MB, and Wordwell caches a copy for autoload. The Tips section also offers the tested Gemma 3 1B UD-Q3_K_XL alternative for stronger Vietnamese translation. Users keep the workspace open to reuse the engine. Quality and speed depend on the model/hardware. Avoid guarantees of perfect grammar, translation, or universal editor/model compatibility.
 
 Declare data handling consistently with `docs/privacy.html`: selected/edited website content is processed locally; settings and one model copy persist locally; requested diagnostic reports use session storage. No telemetry, advertisements, cloud inference, or automatic diagnostic uploads. External model/support links are user-initiated. Local-only processing still needs disclosure; do not equate it with not handling user data. Complete the dashboard's current questions according to their definitions.
 
@@ -56,7 +56,7 @@ All executable JS, workers, and WASM are included in the package. The external d
 ## Reviewer test instructions
 
 1. Use desktop Chrome 137+ and pin Wordwell. On first install, its setup workspace opens automatically in the foreground. No account, API key, local server, Python, Node, or command-line launcher is needed for the installed extension.
-2. Open Wordwell. Follow the model download link in Tips, select the downloaded GGUF, and click Load model. Allow disk/memory for the roughly 771 MB model and its saved copy. Wait for Ready. Read the linked privacy policy.
+2. Open Wordwell. Follow the recommended Qwen model download link in Tips, select the downloaded GGUF, and click Load model. Allow disk/memory for the roughly 559 MB model and its saved copy. Wait for Ready. Read the linked privacy policy.
 3. In Original, enter `Yesterday I go to the shop and buy some milk.` Use Check text and review the correction; the source remains editable. Output can vary by model.
 4. On a normal HTTP/HTTPS website, type the same sentence in a supported text box. Pause, click an underline, use Replace, then Ctrl+Z. Chrome internal and other restricted pages are not supported.
 5. In Settings, enable Text box translation, uncheck Instant translation, choose Spanish, and select `Hello.` in a text box. Click the translation icon, review and Replace. Enable Instant translation and repeat to test direct replacement and Undo.

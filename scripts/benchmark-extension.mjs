@@ -6,7 +6,7 @@ import { removeTestProfile, waitForWorkspace } from './browser-profile.mjs';
 
 // Run serially in a disposable extension profile: no server or model download.
 // Compare different inputs, not just the unrealistically fast identical prompt.
-const modelPath = process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf');
+const modelPath = process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q4_K_XL.gguf');
 const rounds = Number(process.env.PERF_ROUNDS || 1);
 assert(Number.isInteger(rounds) && rounds >= 1 && rounds <= 10, 'PERF_ROUNDS must be 1–10');
 const variants = {

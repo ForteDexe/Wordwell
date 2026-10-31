@@ -1,0 +1,666 @@
+{
+  "date": "2026-10-31T12:16:48.588Z",
+  "modelPath": "Qwen3.5-0.8B-UD-Q4_K_XL.gguf",
+  "context": 1024,
+  "gpuFlags": [
+    "--force-high-performance-gpu",
+    "--use-webgpu-power-preference=force-high-performance"
+  ],
+  "cases": [
+    {
+      "id": "vi-greeting",
+      "language": "vi",
+      "category": "simple",
+      "input": "Hello, how are you?",
+      "reference": "Xin chào, bạn khỏe không?",
+      "output": "Chào bạn, tôi đang tốt.",
+      "finishReason": "stop",
+      "seconds": 0.4598050000071526,
+      "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 66,
+        "total_tokens": 75,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 66,
+        "prompt_ms": 310.554,
+        "prompt_per_token_ms": 4.705363636363636,
+        "prompt_per_second": 212.5234258776252,
+        "predicted_n": 9,
+        "predicted_ms": 146.175,
+        "predicted_per_token_ms": 18.271875,
+        "predicted_per_second": 54.728920814092696
+      }
+    },
+    {
+      "id": "vi-time",
+      "language": "vi",
+      "category": "details",
+      "input": "The meeting has been moved to Friday at 3:30 p.m.",
+      "reference": "Cuộc họp đã được chuyển sang 3 giờ 30 chiều thứ Sáu.",
+      "output": "Đã chuyển cuộc họp vào thứ Chủ nhật lúc 15:30 giờ.",
+      "finishReason": "stop",
+      "seconds": 0.561425000011921,
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 76,
+        "total_tokens": 95,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 76,
+        "prompt_ms": 229.94,
+        "prompt_per_token_ms": 3.025526315789474,
+        "prompt_per_second": 330.52100547969036,
+        "predicted_n": 19,
+        "predicted_ms": 327.43,
+        "predicted_per_token_ms": 18.190555555555555,
+        "predicted_per_second": 54.97358213969398
+      }
+    },
+    {
+      "id": "vi-negation",
+      "language": "vi",
+      "category": "negation",
+      "input": "Please don't delete the original file until the backup is complete.",
+      "reference": "Vui lòng đừng xóa tệp gốc cho đến khi quá trình sao lưu hoàn tất.",
+      "output": "Đừng xóa tệp gốc cho đến khi bản sao hoàn thành.",
+      "finishReason": "stop",
+      "seconds": 0.4225049999952316,
+      "usage": {
+        "completion_tokens": 14,
+        "prompt_tokens": 73,
+        "total_tokens": 87,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 73,
+        "prompt_ms": 197.544,
+        "prompt_per_token_ms": 2.706082191780822,
+        "prompt_per_second": 369.53792572793907,
+        "predicted_n": 14,
+        "predicted_ms": 222.016,
+        "predicted_per_token_ms": 17.078153846153846,
+        "predicted_per_second": 58.55433842605939
+      }
+    },
+    {
+      "id": "vi-contrast",
+      "language": "vi",
+      "category": "structure",
+      "input": "Although the update is smaller, it takes longer to install.",
+      "reference": "Mặc dù bản cập nhật có dung lượng nhỏ hơn, việc cài đặt lại mất nhiều thời gian hơn.",
+      "output": "Tuy cập nhỏ nhưng cần thời gian lâu hơn để cài đặt.",
+      "finishReason": "stop",
+      "seconds": 0.44034499996900556,
+      "usage": {
+        "completion_tokens": 15,
+        "prompt_tokens": 72,
+        "total_tokens": 87,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 72,
+        "prompt_ms": 205.31,
+        "prompt_per_token_ms": 2.8515277777777777,
+        "prompt_per_second": 350.6892016949978,
+        "predicted_n": 15,
+        "predicted_ms": 232.735,
+        "predicted_per_token_ms": 16.62392857142857,
+        "predicted_per_second": 60.15425269082862
+      }
+    },
+    {
+      "id": "vi-counterfactual",
+      "language": "vi",
+      "category": "tense",
+      "input": "I wish I had known about the problem earlier.",
+      "reference": "Ước gì tôi đã biết về vấn đề này sớm hơn.",
+      "output": "Tôi mong đã biết về vấn đề trước đó.",
+      "finishReason": "stop",
+      "seconds": 0.3850799999833107,
+      "usage": {
+        "completion_tokens": 11,
+        "prompt_tokens": 70,
+        "total_tokens": 81,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 70,
+        "prompt_ms": 204.275,
+        "prompt_per_token_ms": 2.918214285714286,
+        "prompt_per_second": 342.6753151389059,
+        "predicted_n": 11,
+        "predicted_ms": 178.56,
+        "predicted_per_token_ms": 17.856,
+        "predicted_per_second": 56.003584229390675
+      }
+    },
+    {
+      "id": "vi-privacy",
+      "language": "vi",
+      "category": "product",
+      "input": "This feature works offline, so your text never leaves your computer.",
+      "reference": "Tính năng này hoạt động ngoại tuyến, vì vậy văn bản của bạn không bao giờ rời khỏi máy tính.",
+      "output": "Tính năng này hoạt động offline, do đó văn bản của bạn sẽ không bao giờ rời khỏi máy tính của bạn.",
+      "finishReason": "stop",
+      "seconds": 0.5678700000047684,
+      "usage": {
+        "completion_tokens": 25,
+        "prompt_tokens": 73,
+        "total_tokens": 98,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 73,
+        "prompt_ms": 201.021,
+        "prompt_per_token_ms": 2.753712328767123,
+        "prompt_per_second": 363.1461389606061,
+        "predicted_n": 25,
+        "predicted_ms": 364.6,
+        "predicted_per_token_ms": 15.191666666666668,
+        "predicted_per_second": 65.82556226001097
+      }
+    },
+    {
+      "id": "vi-bank",
+      "language": "vi",
+      "category": "ambiguity",
+      "input": "The bank is on the left after you cross the bridge.",
+      "reference": "Ngân hàng nằm bên trái sau khi bạn qua cầu.",
+      "output": "Đầu tiên, bạn đi qua cầu rồi sẽ thấy ngân hàng ở bên trái.",
+      "finishReason": "stop",
+      "seconds": 0.46372000002861025,
+      "usage": {
+        "completion_tokens": 18,
+        "prompt_tokens": 72,
+        "total_tokens": 90,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 72,
+        "prompt_ms": 195.305,
+        "prompt_per_token_ms": 2.7125694444444446,
+        "prompt_per_second": 368.65415631960263,
+        "predicted_n": 18,
+        "predicted_ms": 266.274,
+        "predicted_per_token_ms": 15.663176470588235,
+        "predicted_per_second": 63.84401030517437
+      }
+    },
+    {
+      "id": "vi-dialogue",
+      "language": "vi",
+      "category": "dialogue",
+      "input": "\"That's not what I meant,\" she said, shaking her head.",
+      "reference": "“Đó không phải là điều tôi muốn nói,” cô ấy vừa nói vừa lắc đầu.",
+      "output": "\"Không phải là điều tôi muốn nói,\" cô nói, lắc đầu.",
+      "finishReason": "stop",
+      "seconds": 0.4416999999880791,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 74,
+        "total_tokens": 90,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 74,
+        "prompt_ms": 210.959,
+        "prompt_per_token_ms": 2.8507972972972975,
+        "prompt_per_second": 350.77906133419293,
+        "predicted_n": 16,
+        "predicted_ms": 228.78,
+        "predicted_per_token_ms": 15.252,
+        "predicted_per_second": 65.56517178075008
+      }
+    },
+    {
+      "id": "vi-caution",
+      "language": "vi",
+      "category": "nuance",
+      "input": "The results were promising, but we shouldn't draw conclusions from such a small sample.",
+      "reference": "Kết quả rất hứa hẹn, nhưng chúng ta không nên đưa ra kết luận từ một mẫu nhỏ như vậy.",
+      "output": "Kết quả đáng tin cậy, nhưng chúng ta không nên đưa ra các kết luận dựa trên mẫu nhỏ.",
+      "finishReason": "stop",
+      "seconds": 0.5719700000286102,
+      "usage": {
+        "completion_tokens": 22,
+        "prompt_tokens": 77,
+        "total_tokens": 99,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 77,
+        "prompt_ms": 213.159,
+        "prompt_per_token_ms": 2.768298701298701,
+        "prompt_per_second": 361.2326948428169,
+        "predicted_n": 22,
+        "predicted_ms": 356.915,
+        "predicted_per_token_ms": 16.99595238095238,
+        "predicted_per_second": 58.83753834946695
+      }
+    },
+    {
+      "id": "vi-technical",
+      "language": "vi",
+      "category": "technical",
+      "input": "Can you explain why the request failed without changing the configuration?",
+      "reference": "Bạn có thể giải thích tại sao yêu cầu thất bại mà không thay đổi cấu hình không?",
+      "output": "Bạn có thể giải thích tại sao yêu cầu đã thất bại mà không thay đổi cấu hình không?",
+      "finishReason": "stop",
+      "seconds": 0.5154599999785423,
+      "usage": {
+        "completion_tokens": 21,
+        "prompt_tokens": 72,
+        "total_tokens": 93,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 72,
+        "prompt_ms": 204.899,
+        "prompt_per_token_ms": 2.8458194444444445,
+        "prompt_per_second": 351.39263734815694,
+        "predicted_n": 21,
+        "predicted_ms": 308.355,
+        "predicted_per_token_ms": 15.417750000000002,
+        "predicted_per_second": 64.86030711355417
+      }
+    },
+    {
+      "id": "vi-control",
+      "language": "vi",
+      "category": "target-language control",
+      "input": "Tôi đã nhận được tin nhắn của bạn.",
+      "reference": "Tôi đã nhận được tin nhắn của bạn.",
+      "output": "Tôi đã nhận được tin nhắn của bạn.",
+      "finishReason": "stop",
+      "seconds": 0.32172500002384186,
+      "usage": {
+        "completion_tokens": 10,
+        "prompt_tokens": 69,
+        "total_tokens": 79,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 69,
+        "prompt_ms": 175.765,
+        "prompt_per_token_ms": 2.54731884057971,
+        "prompt_per_second": 392.5696242141496,
+        "predicted_n": 10,
+        "predicted_ms": 143.575,
+        "predicted_per_token_ms": 15.952777777777776,
+        "predicted_per_second": 62.68500783562599
+      }
+    },
+    {
+      "id": "zh-greeting",
+      "language": "zh-CN",
+      "category": "simple",
+      "input": "Hello, how are you?",
+      "reference": "你好，你好吗？",
+      "output": "您好，请问如何？",
+      "finishReason": "stop",
+      "seconds": 0.4575,
+      "usage": {
+        "completion_tokens": 6,
+        "prompt_tokens": 68,
+        "total_tokens": 74,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 68,
+        "prompt_ms": 197.495,
+        "prompt_per_token_ms": 2.9043382352941176,
+        "prompt_per_second": 344.31251424086685,
+        "predicted_n": 6,
+        "predicted_ms": 73.74,
+        "predicted_per_token_ms": 14.748,
+        "predicted_per_second": 67.80580417683754
+      }
+    },
+    {
+      "id": "zh-time",
+      "language": "zh-CN",
+      "category": "details",
+      "input": "The meeting has been moved to Friday at 3:30 p.m.",
+      "reference": "会议已改到星期五下午3点30分。",
+      "output": "会议已移至周五下午 3:30 分。",
+      "finishReason": "stop",
+      "seconds": 0.4080400000214577,
+      "usage": {
+        "completion_tokens": 14,
+        "prompt_tokens": 78,
+        "total_tokens": 92,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 78,
+        "prompt_ms": 201.825,
+        "prompt_per_token_ms": 2.5875,
+        "prompt_per_second": 386.47342995169083,
+        "predicted_n": 14,
+        "predicted_ms": 204.074,
+        "predicted_per_token_ms": 15.698,
+        "predicted_per_second": 63.702382469104336
+      }
+    },
+    {
+      "id": "zh-negation",
+      "language": "zh-CN",
+      "category": "negation",
+      "input": "Please don't delete the original file until the backup is complete.",
+      "reference": "请不要删除原始文件，直到备份完成。",
+      "output": "请勿在备份完成之前删除原始文件。",
+      "finishReason": "stop",
+      "seconds": 0.3463100000023842,
+      "usage": {
+        "completion_tokens": 10,
+        "prompt_tokens": 75,
+        "total_tokens": 85,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 75,
+        "prompt_ms": 212.244,
+        "prompt_per_token_ms": 2.82992,
+        "prompt_per_second": 353.3668796291061,
+        "predicted_n": 10,
+        "predicted_ms": 131.88,
+        "predicted_per_token_ms": 14.653333333333332,
+        "predicted_per_second": 68.24385805277525
+      }
+    },
+    {
+      "id": "zh-contrast",
+      "language": "zh-CN",
+      "category": "structure",
+      "input": "Although the update is smaller, it takes longer to install.",
+      "reference": "虽然更新包更小，但安装所需的时间却更长。",
+      "output": "尽管更新包较小，但安装时间较长。",
+      "finishReason": "stop",
+      "seconds": 0.36744499999284747,
+      "usage": {
+        "completion_tokens": 11,
+        "prompt_tokens": 74,
+        "total_tokens": 85,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 74,
+        "prompt_ms": 208.31,
+        "prompt_per_token_ms": 2.815,
+        "prompt_per_second": 355.2397868561279,
+        "predicted_n": 11,
+        "predicted_ms": 156.916,
+        "predicted_per_token_ms": 15.6916,
+        "predicted_per_second": 63.728364220347196
+      }
+    },
+    {
+      "id": "zh-counterfactual",
+      "language": "zh-CN",
+      "category": "tense",
+      "input": "I wish I had known about the problem earlier.",
+      "reference": "真希望我能早点知道这个问题。",
+      "output": "我本应更早知晓此事。",
+      "finishReason": "stop",
+      "seconds": 0.31974000000953673,
+      "usage": {
+        "completion_tokens": 8,
+        "prompt_tokens": 72,
+        "total_tokens": 80,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 72,
+        "prompt_ms": 204.164,
+        "prompt_per_token_ms": 2.835611111111111,
+        "prompt_per_second": 352.6576673654513,
+        "predicted_n": 8,
+        "predicted_ms": 113.246,
+        "predicted_per_token_ms": 16.178,
+        "predicted_per_second": 61.81233774261344
+      }
+    },
+    {
+      "id": "zh-privacy",
+      "language": "zh-CN",
+      "category": "product",
+      "input": "This feature works offline, so your text never leaves your computer.",
+      "reference": "此功能可离线运行，因此你的文本绝不会离开你的电脑。",
+      "output": "此功能支持离线操作，因此您的文本不会离开您的电脑。",
+      "finishReason": "stop",
+      "seconds": 0.4525199999809265,
+      "usage": {
+        "completion_tokens": 15,
+        "prompt_tokens": 75,
+        "total_tokens": 90,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 75,
+        "prompt_ms": 215.21,
+        "prompt_per_token_ms": 2.869466666666667,
+        "prompt_per_second": 348.49681706240415,
+        "predicted_n": 15,
+        "predicted_ms": 235.225,
+        "predicted_per_token_ms": 16.801785714285714,
+        "predicted_per_second": 59.51748326070783
+      }
+    },
+    {
+      "id": "zh-bank",
+      "language": "zh-CN",
+      "category": "ambiguity",
+      "input": "The bank is on the left after you cross the bridge.",
+      "reference": "过桥后，银行就在左边。",
+      "output": "桥后左侧为银行。",
+      "finishReason": "stop",
+      "seconds": 0.3138700000047684,
+      "usage": {
+        "completion_tokens": 7,
+        "prompt_tokens": 74,
+        "total_tokens": 81,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 74,
+        "prompt_ms": 213.42,
+        "prompt_per_token_ms": 2.884054054054054,
+        "prompt_per_second": 346.7341392559273,
+        "predicted_n": 7,
+        "predicted_ms": 98.169,
+        "predicted_per_token_ms": 16.3615,
+        "predicted_per_second": 61.11909054793266
+      }
+    },
+    {
+      "id": "zh-dialogue",
+      "language": "zh-CN",
+      "category": "dialogue",
+      "input": "\"That's not what I meant,\" she said, shaking her head.",
+      "reference": "“我不是这个意思，”她摇着头说道。",
+      "output": "“那不是我想说的，”她摇了摇头。",
+      "finishReason": "stop",
+      "seconds": 0.34912999999523164,
+      "usage": {
+        "completion_tokens": 10,
+        "prompt_tokens": 76,
+        "total_tokens": 86,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 76,
+        "prompt_ms": 209.51,
+        "prompt_per_token_ms": 2.756710526315789,
+        "prompt_per_second": 362.7511813278603,
+        "predicted_n": 10,
+        "predicted_ms": 137.429,
+        "predicted_per_token_ms": 15.26988888888889,
+        "predicted_per_second": 65.48836126290666
+      }
+    },
+    {
+      "id": "zh-caution",
+      "language": "zh-CN",
+      "category": "nuance",
+      "input": "The results were promising, but we shouldn't draw conclusions from such a small sample.",
+      "reference": "结果很有希望，但我们不应根据这么小的样本得出结论。",
+      "output": "结果令人鼓舞，但我们不应仅凭如此小样本就下结论。",
+      "finishReason": "stop",
+      "seconds": 0.4560699999928474,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 79,
+        "total_tokens": 95,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 79,
+        "prompt_ms": 214.21,
+        "prompt_per_token_ms": 2.711518987341772,
+        "prompt_per_second": 368.79697493114236,
+        "predicted_n": 16,
+        "predicted_ms": 239.795,
+        "predicted_per_token_ms": 15.986333333333333,
+        "predicted_per_second": 62.55343105569341
+      }
+    },
+    {
+      "id": "zh-technical",
+      "language": "zh-CN",
+      "category": "technical",
+      "input": "Can you explain why the request failed without changing the configuration?",
+      "reference": "你能解释一下为什么请求失败，并且不更改配置吗？",
+      "output": "请求为何在配置未变更的情况下失败？",
+      "finishReason": "stop",
+      "seconds": 0.3608199999928474,
+      "usage": {
+        "completion_tokens": 10,
+        "prompt_tokens": 74,
+        "total_tokens": 84,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 74,
+        "prompt_ms": 215.97,
+        "prompt_per_token_ms": 2.9185135135135134,
+        "prompt_per_second": 342.64018150669074,
+        "predicted_n": 10,
+        "predicted_ms": 142.845,
+        "predicted_per_token_ms": 15.871666666666666,
+        "predicted_per_second": 63.005355455213696
+      }
+    },
+    {
+      "id": "zh-control",
+      "language": "zh-CN",
+      "category": "target-language control",
+      "input": "我已经收到你的消息了。",
+      "reference": "我已经收到你的消息了。",
+      "output": "我已收到您的消息。",
+      "finishReason": "stop",
+      "seconds": 0.32840500003099443,
+      "usage": {
+        "completion_tokens": 6,
+        "prompt_tokens": 68,
+        "total_tokens": 74,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 68,
+        "prompt_ms": 205.825,
+        "prompt_per_token_ms": 3.0268382352941177,
+        "prompt_per_second": 330.37774808696713,
+        "predicted_n": 6,
+        "predicted_ms": 120.535,
+        "predicted_per_token_ms": 24.107,
+        "predicted_per_second": 41.481727299124735
+      }
+    }
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "browser": "156.0.8078.4",
+  "environment": {
+    "hardwareConcurrency": 32,
+    "adapter": {}
+  },
+  "loadSeconds": 2.771639999985695,
+  "summary": {
+    "medianSeconds": 0.4314249999821186,
+    "p90Seconds": 0.561425000011921,
+    "exactReferences": 1,
+    "controlsUnchanged": 1,
+    "incomplete": 0,
+    "total": 22
+  },
+  "passed": true
+}

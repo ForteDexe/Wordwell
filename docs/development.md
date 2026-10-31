@@ -14,10 +14,10 @@ Load `dist/extension` in Chrome's Load unpacked dialog. Reload the extension and
 
 ## Models and tests
 
-Put the verified model in `models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf`, or set `MODEL_FILE_PATH` to its full path. Model files are ignored by Git and never bundled into the release. For the standalone server, use `MODEL_DIR` to point at a model directory instead.
+Put the recommended model in `models/Qwen3.5-0.8B-UD-Q4_K_XL.gguf`, or set `MODEL_FILE_PATH` to its full path. Model files are ignored by Git and never bundled into the release. For the standalone server, use `MODEL_DIR` to point at a model directory instead.
 
 ```powershell
-$env:MODEL_FILE_PATH = 'C:\Models\Qwen3.5-0.8B-UD-Q6_K_XL.gguf'
+$env:MODEL_FILE_PATH = 'C:\Models\Qwen3.5-0.8B-UD-Q4_K_XL.gguf'
 npm run test:budget
 npm run test:diff
 npm run test:package

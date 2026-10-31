@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const defaultModel = 'Qwen3.5-0.8B-UD-Q6_K_XL.gguf';
+const defaultModel = 'Qwen3.5-0.8B-UD-Q4_K_XL.gguf';
 const types = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.wasm': 'application/wasm' };
 
 export async function startServer({ port = Number(process.env.PORT || 8766), modelDirectory = process.env.MODEL_DIR || path.join(root, 'models') } = {}) {

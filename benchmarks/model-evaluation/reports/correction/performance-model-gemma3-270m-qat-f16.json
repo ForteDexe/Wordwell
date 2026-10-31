@@ -1,0 +1,540 @@
+{
+  "date": "2026-10-31T11:33:20.508Z",
+  "modelPath": "gemma-3-270m-it-qat-F16.gguf",
+  "rounds": 1,
+  "context": 1024,
+  "gpuFlags": [
+    "--force-high-performance-gpu",
+    "--use-webgpu-power-preference=force-high-performance"
+  ],
+  "probeOnly": false,
+  "results": [
+    {
+      "name": "baseline",
+      "options": {
+        "n_ctx": 1024,
+        "n_parallel": 1,
+        "n_batch": 128,
+        "n_ubatch": 128,
+        "n_threads": 8,
+        "n_gpu_layers": 99999,
+        "cache_type_k": "f16",
+        "cache_type_v": "f16",
+        "jinja": true,
+        "reasoning": false,
+        "default_template_kwargs": {
+          "enable_thinking": false
+        },
+        "seed": 42
+      },
+      "instruction": "Correct the English grammar, spelling, and sentence structure with minimal edits. Preserve the original meaning. If the text is already correct, return it unchanged. Return only the corrected text, without explanations or quotation marks.",
+      "cache": false,
+      "context": 1024,
+      "threads": 8,
+      "loadSeconds": 2.3324900000095368,
+      "warmup": {
+        "input": "This is a warmup sentence.",
+        "output": "Here's the corrected English text:\n\nThis is a warmup sentence.",
+        "seconds": 0.6201600000262261,
+        "finishReason": "stop",
+        "usage": {
+          "completion_tokens": 17,
+          "prompt_tokens": 58,
+          "total_tokens": 75,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 58,
+          "prompt_ms": 298.934,
+          "prompt_per_token_ms": 5.154034482758621,
+          "prompt_per_second": 194.02276087698286,
+          "predicted_n": 17,
+          "predicted_ms": 298.64,
+          "predicted_per_token_ms": 18.665,
+          "predicted_per_second": 53.576212161800164
+        }
+      },
+      "samples": [
+        {
+          "input": "I recieved your message yesterday.",
+          "output": "I received your message yesterday.",
+          "seconds": 0.2740949999690056,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 8,
+            "prompt_tokens": 58,
+            "total_tokens": 66,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 58,
+            "prompt_ms": 157.589,
+            "prompt_per_token_ms": 2.717051724137931,
+            "prompt_per_second": 368.04599305789105,
+            "predicted_n": 8,
+            "predicted_ms": 112.721,
+            "predicted_per_token_ms": 16.103,
+            "predicted_per_second": 62.10022977085015
+          },
+          "round": 0,
+          "category": "spelling",
+          "reference": "I received your message yesterday."
+        },
+        {
+          "input": "We should discuss the the next step.",
+          "output": "Okay, I'm ready. Please provide the text you want me to edit.",
+          "seconds": 0.41897000002861023,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 19,
+            "prompt_tokens": 60,
+            "total_tokens": 79,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 60,
+            "prompt_ms": 165.96,
+            "prompt_per_token_ms": 2.766,
+            "prompt_per_second": 361.5328994938539,
+            "predicted_n": 19,
+            "predicted_ms": 249.404,
+            "predicted_per_token_ms": 13.855777777777778,
+            "predicted_per_second": 72.17205818671714
+          },
+          "round": 0,
+          "category": "repeated word",
+          "reference": "We should discuss the next step."
+        },
+        {
+          "input": "She don't know the answer.",
+          "output": "She doesn't know the answer.",
+          "seconds": 0.27342500001192094,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 10,
+            "prompt_tokens": 60,
+            "total_tokens": 70,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 60,
+            "prompt_ms": 140.875,
+            "prompt_per_token_ms": 2.347916666666667,
+            "prompt_per_second": 425.9094942324756,
+            "predicted_n": 10,
+            "predicted_ms": 129.046,
+            "predicted_per_token_ms": 14.338444444444443,
+            "predicted_per_second": 69.74257241603769
+          },
+          "round": 0,
+          "category": "agreement",
+          "reference": "She doesn't know the answer."
+        },
+        {
+          "input": "He go to work every day.",
+          "output": "He goes to work every day.",
+          "seconds": 0.23510499995946885,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 59,
+            "total_tokens": 68,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 59,
+            "prompt_ms": 128.701,
+            "prompt_per_token_ms": 2.181372881355932,
+            "prompt_per_second": 458.42689644991106,
+            "predicted_n": 9,
+            "predicted_ms": 103.599,
+            "predicted_per_token_ms": 12.949875,
+            "predicted_per_second": 77.22082259481269
+          },
+          "round": 0,
+          "category": "agreement",
+          "reference": "He goes to work every day."
+        },
+        {
+          "input": "Yesterday I go to the shop and buy some milk.",
+          "output": "yesterday I go to the shop and buy some milk.",
+          "seconds": 0.34956999999284744,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 14,
+            "prompt_tokens": 63,
+            "total_tokens": 77,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 63,
+            "prompt_ms": 158.754,
+            "prompt_per_token_ms": 2.519904761904762,
+            "prompt_per_second": 396.8403945727352,
+            "predicted_n": 14,
+            "predicted_ms": 187.335,
+            "predicted_per_token_ms": 14.410384615384617,
+            "predicted_per_second": 69.39440040569035
+          },
+          "round": 0,
+          "category": "past tense",
+          "reference": "Yesterday I went to the shop and bought some milk."
+        },
+        {
+          "input": "I am living here since five years.",
+          "output": "I am living here since five years.",
+          "seconds": 0.2619250000119209,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 10,
+            "prompt_tokens": 60,
+            "total_tokens": 70,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 60,
+            "prompt_ms": 138.83,
+            "prompt_per_token_ms": 2.3138333333333336,
+            "prompt_per_second": 432.18324569617516,
+            "predicted_n": 10,
+            "predicted_ms": 120.105,
+            "predicted_per_token_ms": 13.345,
+            "predicted_per_second": 74.93443237167479
+          },
+          "round": 0,
+          "category": "duration and tense",
+          "reference": "I have been living here for five years."
+        },
+        {
+          "input": "Can you explain me how this works?",
+          "output": "I am sorry, but I cannot provide an explanation of how this works.",
+          "seconds": 0.3646799999475479,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 17,
+            "prompt_tokens": 60,
+            "total_tokens": 77,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 60,
+            "prompt_ms": 145.649,
+            "prompt_per_token_ms": 2.4274833333333334,
+            "prompt_per_second": 411.9492753125665,
+            "predicted_n": 17,
+            "predicted_ms": 216.165,
+            "predicted_per_token_ms": 13.5103125,
+            "predicted_per_second": 74.01753290310643
+          },
+          "round": 0,
+          "category": "verb construction",
+          "reference": "Can you explain to me how this works?"
+        },
+        {
+          "input": "I look forward to hear from you.",
+          "output": "I look forward to hearing from you.",
+          "seconds": 0.27796499997377394,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 10,
+            "prompt_tokens": 60,
+            "total_tokens": 70,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 60,
+            "prompt_ms": 149.02,
+            "prompt_per_token_ms": 2.4836666666666667,
+            "prompt_per_second": 402.63051939337,
+            "predicted_n": 10,
+            "predicted_ms": 125.326,
+            "predicted_per_token_ms": 13.92511111111111,
+            "predicted_per_second": 71.81271244594099
+          },
+          "round": 0,
+          "category": "verb construction",
+          "reference": "I look forward to hearing from you."
+        },
+        {
+          "input": "Although it was raining, but we went outside.",
+          "output": "The corrected text is:\nAlthough it was raining, we went outside.",
+          "seconds": 0.37656499999761583,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 17,
+            "prompt_tokens": 62,
+            "total_tokens": 79,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 62,
+            "prompt_ms": 143.935,
+            "prompt_per_token_ms": 2.3215322580645164,
+            "prompt_per_second": 430.74999131552437,
+            "predicted_n": 17,
+            "predicted_ms": 229.295,
+            "predicted_per_token_ms": 14.3309375,
+            "predicted_per_second": 69.77910551909113
+          },
+          "round": 0,
+          "category": "sentence structure",
+          "reference": "Although it was raining, we went outside."
+        },
+        {
+          "input": "I very like this extension.",
+          "output": "I really like this extension.",
+          "seconds": 0.24900499999523162,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 8,
+            "prompt_tokens": 58,
+            "total_tokens": 66,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 58,
+            "prompt_ms": 137.67,
+            "prompt_per_token_ms": 2.3736206896551724,
+            "prompt_per_second": 421.29730514999636,
+            "predicted_n": 8,
+            "predicted_ms": 108.175,
+            "predicted_per_token_ms": 15.453571428571427,
+            "predicted_per_second": 64.70996071180957
+          },
+          "round": 0,
+          "category": "word order",
+          "reference": "I really like this extension."
+        },
+        {
+          "input": "I don't know what should I do.",
+          "output": "I don't know what to do.",
+          "seconds": 0.2943949999809265,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 11,
+            "prompt_tokens": 62,
+            "total_tokens": 73,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 62,
+            "prompt_ms": 149.635,
+            "prompt_per_token_ms": 2.4134677419354835,
+            "prompt_per_second": 414.34156447355235,
+            "predicted_n": 11,
+            "predicted_ms": 141.665,
+            "predicted_per_token_ms": 14.1665,
+            "predicted_per_second": 70.58906575371475
+          },
+          "round": 0,
+          "category": "word order",
+          "reference": "I don't know what I should do."
+        },
+        {
+          "input": "I have finished my work yesterday.",
+          "output": "I have finished my work yesterday.",
+          "seconds": 0.2669899999499321,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 59,
+            "total_tokens": 68,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 59,
+            "prompt_ms": 149.446,
+            "prompt_per_token_ms": 2.5329830508474576,
+            "prompt_per_second": 394.79142968028583,
+            "predicted_n": 9,
+            "predicted_ms": 112.375,
+            "predicted_per_token_ms": 14.046875,
+            "predicted_per_second": 71.19021134593993
+          },
+          "round": 0,
+          "category": "tense and time",
+          "reference": "I finished my work yesterday."
+        },
+        {
+          "input": "I am agree with you.",
+          "output": "I agree with you.",
+          "seconds": 0.22771000003814698,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 7,
+            "prompt_tokens": 58,
+            "total_tokens": 65,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 58,
+            "prompt_ms": 141.55,
+            "prompt_per_token_ms": 2.4405172413793106,
+            "prompt_per_second": 409.74920522783464,
+            "predicted_n": 7,
+            "predicted_ms": 83.149,
+            "predicted_per_token_ms": 13.858166666666667,
+            "predicted_per_second": 72.1596170729654
+          },
+          "round": 0,
+          "category": "verb construction",
+          "reference": "I agree with you."
+        },
+        {
+          "input": "I feel like it just suggest to correct one word, but the whole sentence is wrong.",
+          "output": "I suggest correcting one word.",
+          "seconds": 0.25180000001192093,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 8,
+            "prompt_tokens": 70,
+            "total_tokens": 78,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 70,
+            "prompt_ms": 151.385,
+            "prompt_per_token_ms": 2.162642857142857,
+            "prompt_per_second": 462.39719919410777,
+            "predicted_n": 8,
+            "predicted_ms": 97.464,
+            "predicted_per_token_ms": 13.923428571428571,
+            "predicted_per_second": 71.82139046211934
+          },
+          "round": 0,
+          "category": "user example",
+          "reference": "I feel like it only suggests corrections to individual words, even when the whole sentence is wrong."
+        },
+        {
+          "input": "I received your message yesterday.",
+          "output": "I received your message yesterday.",
+          "seconds": 0.2504749999642372,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 8,
+            "prompt_tokens": 58,
+            "total_tokens": 66,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 58,
+            "prompt_ms": 150.684,
+            "prompt_per_token_ms": 2.598,
+            "prompt_per_second": 384.9114703618168,
+            "predicted_n": 8,
+            "predicted_ms": 97.041,
+            "predicted_per_token_ms": 13.863,
+            "predicted_per_second": 72.13445863088798
+          },
+          "round": 0,
+          "category": "correct control",
+          "reference": "I received your message yesterday."
+        },
+        {
+          "input": "I don't know what I should do.",
+          "output": "I don't know what I should do.",
+          "seconds": 0.3178149999976158,
+          "finishReason": "stop",
+          "usage": {
+            "completion_tokens": 12,
+            "prompt_tokens": 62,
+            "total_tokens": 74,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "timings": {
+            "cache_n": 0,
+            "prompt_n": 62,
+            "prompt_ms": 154.161,
+            "prompt_per_token_ms": 2.486467741935484,
+            "prompt_per_second": 402.17694488229836,
+            "predicted_n": 12,
+            "predicted_ms": 160.905,
+            "predicted_per_token_ms": 14.627727272727272,
+            "predicted_per_second": 68.3633199714117
+          },
+          "round": 0,
+          "category": "correct control",
+          "reference": "I don't know what I should do."
+        }
+      ],
+      "logs": [
+        "ggml_webgpu: adapter_info: vendor_id: 0 | vendor: nvidia | architecture: lovelace | device_id: 0 | name:  | device_desc: "
+      ],
+      "summary": {
+        "medianSeconds": 0.2737599999904633,
+        "p90Seconds": 0.37656499999761583,
+        "medianPromptMs": 149.233,
+        "medianGenerationMs": 122.71549999999999,
+        "medianCachedTokens": 0,
+        "referenceMatches": 8,
+        "controlsUnchanged": 2,
+        "total": 16,
+        "incomplete": 0
+      }
+    }
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "browser": "156.0.8078.4",
+  "environment": {
+    "hardwareConcurrency": 32,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "adapter": {
+      "vendor": "nvidia",
+      "architecture": "lovelace",
+      "device": "",
+      "description": ""
+    }
+  },
+  "passed": true
+}

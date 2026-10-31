@@ -21,7 +21,7 @@ import { testDefaultSettings } from './test-default-settings.mjs';
 import { testBenchmark } from './test-benchmark.mjs';
 
 const extensionPath = path.resolve(process.env.EXTENSION_PATH || 'dist/extension');
-const modelPath = process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q6_K_XL.gguf');
+const modelPath = process.env.MODEL_FILE_PATH || path.resolve('models/Qwen3.5-0.8B-UD-Q4_K_XL.gguf');
 await mkdir('artifacts', { recursive: true });
 await mkdir('.browser-check', { recursive: true });
 const profile = await mkdtemp(path.resolve('.browser-check/extension-'));
