@@ -739,9 +739,9 @@
   });
 
   function updateTranslationSettings(values) {
-    const enabled = values.translationEnabled === true, language = languages.normalize(values.translationLanguage ?? defaults.translationLanguage);
+    const enabled = values.engineMode !== 'edit' && values.translationEnabled === true, language = languages.normalize(values.translationLanguage ?? defaults.translationLanguage);
     const instant = (values.instantTranslation ?? defaults.instantTranslation) === true;
-    const pageEnabled = values.pageTranslationEnabled === true, pageLanguage = languages.normalize(values.pageTranslationLanguage ?? defaults.pageTranslationLanguage);
+    const pageEnabled = values.engineMode !== 'edit' && values.pageTranslationEnabled === true, pageLanguage = languages.normalize(values.pageTranslationLanguage ?? defaults.pageTranslationLanguage);
     const editorChanged = enabled !== translationEnabled || language !== translationLanguage || instant !== instantTranslation;
     const pageChanged = pageEnabled !== pageTranslationEnabled || pageLanguage !== pageTranslationLanguage;
     if (!editorChanged && !pageChanged) return;
@@ -756,14 +756,8 @@
     schedule();
   }
   function translationSettingsListener(changes, area) {
-    if (area !== 'local' || (!changes.translationEnabled && !changes.translationLanguage && !changes.instantTranslation && !changes.pageTranslationEnabled && !changes.pageTranslationLanguage)) return;
-    updateTranslationSettings({
-      translationEnabled: changes.translationEnabled ? changes.translationEnabled.newValue : translationEnabled,
-      translationLanguage: changes.translationLanguage ? changes.translationLanguage.newValue : translationLanguage,
-      instantTranslation: changes.instantTranslation ? changes.instantTranslation.newValue : instantTranslation,
-      pageTranslationEnabled: changes.pageTranslationEnabled ? changes.pageTranslationEnabled.newValue : pageTranslationEnabled,
-      pageTranslationLanguage: changes.pageTranslationLanguage ? changes.pageTranslationLanguage.newValue : pageTranslationLanguage,
-    });
+    if (area !== 'local' || (!changes.engineMode && !changes.translationEnabled && !changes.translationLanguage && !changes.instantTranslation && !changes.pageTranslationEnabled && !changes.pageTranslationLanguage)) return;
+    chrome.storage.local.get(defaults).then(updateTranslationSettings).catch(() => {});
   }
   chrome.storage.onChanged.addListener(translationSettingsListener);
   chrome.storage.local.get(defaults).then(updateTranslationSettings).catch(() => {});

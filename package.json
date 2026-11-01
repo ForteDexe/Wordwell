@@ -6,6 +6,10 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "test:engine": "node scripts/test-engine.mjs",
+    "test:edit": "node --test scripts/edit-model.test.mjs",
+    "test:edit-browser": "node scripts/test-edit-model.mjs",
+    "check:public": "node scripts/check-public-boundary.mjs",
+    "setup:hooks": "git config core.hooksPath .githooks",
     "build:extension": "node scripts/build-extension.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "build:release": "node scripts/build-release.mjs",
@@ -22,7 +26,9 @@
     "benchmark:extension": "node scripts/benchmark-extension.mjs"
   },
   "dependencies": {
-    "@wllama/wllama": "3.8.1"
+    "@huggingface/tokenizers": "0.2.0",
+    "@wllama/wllama": "3.8.1",
+    "onnxruntime-web": "1.31.1"
   },
   "devDependencies": {
     "fflate": "0.8.3",

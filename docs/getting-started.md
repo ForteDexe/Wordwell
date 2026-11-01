@@ -2,11 +2,11 @@
 
 **Write clearly. Translate locally.**
 
-Wordwell is a Chrome extension for grammar correction and translation with a GGUF model running in Chrome or in your own local llama.cpp server. It underlines suggested edits after a typing pause, refines selected writing, and translates selections in text boxes or ordinary webpage text. Your writing is not sent to a cloud inference service.
+Wordwell is a Chrome extension for grammar correction and translation with a model running in Chrome or in your own local llama.cpp server. It underlines suggested edits after a typing pause, refines selected writing, and translates selections in text boxes or ordinary webpage text. Your writing is not sent to a cloud inference service.
 
 ## Get started
 
-Requirements: desktop Chrome 137 or newer, a compatible GGUF model, and enough memory and disk space for that model. A GPU can improve speed; performance and language quality depend on your hardware and model. The recommended model below is about 559 MB. Wordwell saves an additional local copy for autoload.
+Requirements: desktop Chrome 137 or newer, a compatible local model or llama.cpp server, and enough memory and disk space for that model. A GPU can improve speed; performance and language quality depend on your hardware and model. The recommended GGUF model below is about 559 MB. Wordwell saves an additional local copy for autoload when loading a model in Chrome.
 
 1. Install the published Chrome Web Store version when available, or download and unzip a [GitHub release](https://github.com/ForteDexe/Wordwell/releases). For an unpacked install, open `chrome://extensions`, enable Developer mode, choose Load unpacked, and select the extracted folder containing `manifest.json`. Developers can [build locally](development.md) and load `dist/extension` instead.
 2. The workspace opens automatically on first install so you can load a model and review Settings. Pin Wordwell and use its toolbar icon to reopen the workspace later.
@@ -15,6 +15,11 @@ Requirements: desktop Chrome 137 or newer, a compatible GGUF model, and enough m
 5. Type in a supported webpage text box and pause for 1.2 seconds. Click an underline to review a suggestion, then Replace or Ignore. Ctrl+Z undoes a replacement.
 
 ## Correction and translation
+
+For English correction, you can also choose **Edit model** in the Engine dropdown
+and load a local `.wwedit` bundle. It supports automatic underlines, selection
+refinement and replacement. Translation and custom prompts are available in the
+GGUF and server modes. See the [edit-model guide](edit-engine.md).
 
 - **Correction:** automatic checks are on by default. Settings lets you choose a correction language, turn automatic checks off, adjust the 512–8,192-token context (1,024 by default), or customize the correction prompt. Select text and click the bulb for a manual refinement.
 - **Text box translation:** enable it and select a target language in Settings. Select writing and click its bottom-right translation icon. Instant translation is checked by default and applies the translation directly after the icon click. Uncheck it to preview the translation and choose Replace instead. Undo remains available.

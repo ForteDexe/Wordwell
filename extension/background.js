@@ -1,4 +1,5 @@
 import { savedModelInfo } from './model-cache.js';
+import { savedEditInfo } from './edit-model-cache.js';
 import { setModelState } from './model-state.js';
 import { ENGINE_DEFAULTS, normalizeEngineMode } from './settings.js';
 
@@ -128,7 +129,8 @@ async function correctInline(text, translation = null) {
   const contexts = await chrome.runtime.getContexts({ contextTypes: ['TAB'], documentUrls: [chrome.runtime.getURL(WORKSPACE)] });
   if (!contexts.length) {
     const { engineMode } = await chrome.storage.local.get(ENGINE_DEFAULTS);
-    if (normalizeEngineMode(engineMode) === 'server' || await savedModelInfo()) {
+    const mode = normalizeEngineMode(engineMode);
+    if (mode === 'server' || (mode === 'edit' ? await savedEditInfo() : await savedModelInfo())) {
       await openWorkspace({ focus: false });
       return { error: normalizeEngineMode(engineMode) === 'server' ? 'Wordwell is connecting to your llama.cpp server. Try the icon again in a moment.' : 'Your saved model is loading. Try the icon again in a moment.', code: 'engine-loading' };
     }
@@ -144,5 +146,6 @@ async function correctInline(text, translation = null) {
 
 async function restoreOnStartup() {
   const { engineMode } = await chrome.storage.local.get(ENGINE_DEFAULTS);
-  if (normalizeEngineMode(engineMode) === 'server' || await savedModelInfo()) await openWorkspace({ focus: false });
+  const mode = normalizeEngineMode(engineMode);
+  if (mode === 'server' || (mode === 'edit' ? await savedEditInfo() : await savedModelInfo())) await openWorkspace({ focus: false });
 }

@@ -20,6 +20,7 @@ test-results/
 *.safetensors
 *.onnx
 *.onnx_data
+*.wwedit
 .cache/
 __pycache__/
 *.py[cod]
@@ -35,3 +36,20 @@ __pycache__/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Research and generated model assets belong in a separate private checkout
+/training/
+/research/
+/datasets/
+/checkpoints/
+/runs/
+/models/
+/model-exports/
+/benchmarks/
+/Wordwell-Training/
+/.local-backup/
+*.pt
+*.pth
+*.ckpt
+*.jsonl
+*.bundle

@@ -37,6 +37,7 @@ export function createBenchmark({ model, canStart, onRunningChange }) {
     $('benchmark-results').append(tr);
   }
   function refresh() {
+    $('benchmark-note').textContent = `Run the 16 English sample sentences with the loaded model${model.engineMode === 'edit' ? ' using its edit predictions' : ', its active context, and the default English prompt'}. References are examples, not automatic grading; different wording can be correct.`;
     $('benchmark-run').disabled = running || !cases || !canStart();
     $('benchmark-stop').hidden = !running;
     $('benchmark-stop').disabled = stopping;
@@ -48,12 +49,12 @@ export function createBenchmark({ model, canStart, onRunningChange }) {
     if (running || !cases || !canStart()) return;
     running = true; stopping = false;
     report = { suite: 'Wordwell English grammar smoke test', startedAt: new Date().toISOString(), completed: false, stopped: false,
-      model: structuredClone(model.info), language: 'en', prompt: languageTools.instruction('en'),
-      sampling: { temperature: 0, seed: 42 }, results: [],
+      model: structuredClone(model.info), language: 'en', prompt: model.engineMode === 'edit' ? null : languageTools.instruction('en'),
+      sampling: model.engineMode === 'edit' ? { maxIterations: 5 } : { temperature: 0, seed: 42 }, results: [],
       note: 'References are examples. Exact matches are not an accuracy score; different wording can be correct. Review outputs manually.' };
     $('benchmark-results').replaceChildren(); $('benchmark-table').hidden = false; $('benchmark-summary').hidden = false;
     $('benchmark-meta').hidden = false;
-    $('benchmark-meta').textContent = `${report.model.file} · ${report.model.backend} · ${report.model.context.toLocaleString()} context tokens · default English prompt`;
+    $('benchmark-meta').textContent = `${report.model.file} · ${report.model.backend} · ${report.model.context.toLocaleString()} context tokens · ${model.engineMode === 'edit' ? 'English edit predictions' : 'default English prompt'}`;
     summarize(); onRunningChange(); refresh();
     try {
       for (const [index, test] of cases.entries()) {

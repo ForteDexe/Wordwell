@@ -1,5 +1,6 @@
 import { LocalModel } from './model-engine.js';
 import { savedModelInfo, savedModelFile, rememberModel, forgetModel } from './model-cache.js';
+import { savedEditInfo, savedEditFile, rememberEditModel, forgetEditModel } from './edit-model-cache.js';
 import { setModelState } from './model-state.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, outputAllowance } from './token-budget.js';
 import { TRANSLATION_DEFAULTS, ENGINE_DEFAULTS, normalizeEngineMode, normalizeServerUrl } from './settings.js';
@@ -30,6 +31,7 @@ let lastSelectionId = null;
 let inlineBusy = false;
 let benchmark = null;
 let selectedFile = null, remembered = null, fileOperation = false, initialized = false, workspaceTabId;
+let selectedEditFile = null, rememberedEdit = null, preferredLanguage = languageTools.defaultLanguage;
 let contextSize = CONTEXT_SIZE, settingsSaving = false;
 let engineMode = ENGINE_DEFAULTS.engineMode, serverUrl = ENGINE_DEFAULTS.serverUrl;
 let { translationEnabled, translationLanguage, instantTranslation, pageTranslationEnabled, pageTranslationLanguage } = TRANSLATION_DEFAULTS;
@@ -48,31 +50,34 @@ function refreshPromptEditor() {
 }
 
 function refreshTokenCount() {
-  const text = $('original').value.trim(), activeContext = model.info?.context ?? contextSize;
+  const text = $('original').value.trim(), editMode = engineMode === 'edit', activeContext = model.info?.context ?? (editMode ? null : contextSize);
+  const contextLabel = activeContext?.toLocaleString() ?? '—';
+  const tokenLabel = editMode ? 'input tokens' : 'prompt tokens';
   const key = JSON.stringify([model.info?.instanceId, model.targetLanguage, model.customPrompt, text]);
   if (key !== tokenKey) { tokenKey = key; tokenPreview = null; clearTimeout(tokenTimer); tokenTimer = null; }
   const counter = $('token-count');
   if (!text) {
-    counter.textContent = `0 / ${activeContext.toLocaleString()} prompt tokens`;
-    counter.title = 'Enter text to count the complete prompt, including instructions and chat formatting.';
+    counter.textContent = `0 / ${contextLabel} ${tokenLabel}`;
+    counter.title = editMode ? 'Enter text to count its input tokens, including boundary tokens.' : 'Enter text to count the complete prompt, including instructions and chat formatting.';
     return;
   }
   if (!model.ready) {
-    counter.textContent = `— / ${activeContext.toLocaleString()} prompt tokens`;
+    counter.textContent = `— / ${contextLabel} ${tokenLabel}`;
     counter.title = 'Load a model to count tokens with its tokenizer.';
     return;
   }
   if (tokenPreview) {
-    counter.textContent = `${tokenPreview.error ? '—' : tokenPreview.prompt_tokens.toLocaleString()} / ${activeContext.toLocaleString()} prompt tokens`;
+    counter.textContent = `${tokenPreview.error ? '—' : tokenPreview.prompt_tokens.toLocaleString()} / ${contextLabel} ${tokenLabel}`;
     if (tokenPreview.error) counter.title = `Token count unavailable: ${tokenPreview.error}`;
     else {
+      if (editMode) { counter.title = `Exact input count, including boundary tokens. Sections above ${model.info.inputLimit.toLocaleString()} tokens are split, reserving ${model.info.safetyMargin.toLocaleString()} tokens for edits.`; return; }
       const output = outputAllowance(tokenPreview.text_tokens);
       const split = tokenPreview.prompt_tokens + output + CONTEXT_MARGIN > activeContext;
       counter.title = `${tokenPreview.text_tokens.toLocaleString()} text tokens plus instructions and chat formatting. Reserves ${output.toLocaleString()} output tokens and ${CONTEXT_MARGIN} safety tokens.${split ? ' This text needs splitting into smaller checks.' : ''}`;
     }
     return;
   }
-  counter.textContent = `… / ${activeContext.toLocaleString()} prompt tokens`;
+  counter.textContent = `… / ${contextLabel} ${tokenLabel}`;
   counter.title = 'Counting with your loaded model. Counts wait while a check is running.';
   if (model.busy || fileOperation || benchmark?.running || tokenTimer || tokenRunning) return;
   tokenTimer = setTimeout(async () => {
@@ -92,11 +97,22 @@ function showError(error) {
 function clearError() { $('error').hidden = true; $('error').textContent = ''; }
 function refresh() {
   const busy = model.busy || benchmark?.running || fileOperation || settingsSaving || !initialized;
-  const browserMode = engineMode === 'browser', serverMode = !browserMode;
+  const browserMode = engineMode === 'browser', serverMode = engineMode === 'server', editMode = engineMode === 'edit';
+  $('qwen-model-tip').hidden = editMode;
+  $('gemma-model-tip').hidden = editMode;
+  $('edit-model-tip').hidden = !editMode;
   $('engine-mode').value = engineMode;
   $('engine-mode').disabled = busy;
   $('browser-engine').hidden = !browserMode;
   $('server-engine').hidden = !serverMode;
+  $('edit-engine').hidden = !editMode;
+  $('load-edit').disabled = busy || !editMode || model.ready || !selectedEditFile;
+  $('unload-edit').disabled = busy || !editMode || !model.ready;
+  $('edit-file').disabled = busy || !editMode || Boolean(model.runtime);
+  $('forget-edit').disabled = busy || !editMode || !rememberedEdit;
+  $('edit-settings-note').hidden = !editMode;
+  $('prompt-settings').hidden = editMode;
+  $('translation-settings').classList.toggle('unavailable', editMode);
   $('load').disabled = busy || !browserMode || Boolean(model.runtime) || !selectedFile;
   $('unload').disabled = busy || !browserMode || !model.runtime;
   $('model-file').disabled = busy || !browserMode || Boolean(model.runtime);
@@ -119,17 +135,17 @@ function refresh() {
   if (document.activeElement !== $('context-size')) $('context-size').value = String(contextSize);
   $('context-size').disabled = busy || !browserMode;
   $('target-language').value = model.targetLanguage;
-  $('target-language').disabled = busy;
+  $('target-language').disabled = busy || editMode;
   $('translation-enabled').checked = translationEnabled;
-  $('translation-enabled').disabled = busy;
+  $('translation-enabled').disabled = busy || editMode;
   $('translation-language').value = translationLanguage;
-  $('translation-language').disabled = busy || !translationEnabled;
+  $('translation-language').disabled = busy || editMode || !translationEnabled;
   $('instant-translation').checked = instantTranslation;
-  $('instant-translation').disabled = busy || !translationEnabled;
+  $('instant-translation').disabled = busy || editMode || !translationEnabled;
   $('page-translation-enabled').checked = pageTranslationEnabled;
-  $('page-translation-enabled').disabled = busy;
+  $('page-translation-enabled').disabled = busy || editMode;
   $('page-translation-language').value = pageTranslationLanguage;
-  $('page-translation-language').disabled = busy || !pageTranslationEnabled;
+  $('page-translation-language').disabled = busy || editMode || !pageTranslationEnabled;
   $('custom-prompt').disabled = busy;
   $('save-prompt').disabled = busy || !promptDirty;
   $('default-prompt').disabled = busy;
@@ -140,7 +156,7 @@ function refresh() {
   $('context-help').textContent = pendingContext
     ? `Currently using ${model.info.context.toLocaleString()} tokens. Apply and reload the model to use ${contextSize.toLocaleString()}.`
     : 'Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.';
-  $('context-badge').textContent = serverMode
+  $('context-badge').textContent = editMode ? `Edit model · English${model.info ? ` · ${model.info.context.toLocaleString()} input tokens` : ''}` : serverMode
     ? `llama.cpp server · ${(model.info?.context ?? '—').toLocaleString?.() ?? '—'} context tokens`
     : `Browser model · ${(model.info?.context ?? contextSize).toLocaleString()} context tokens`;
   refreshTokenCount();
@@ -151,7 +167,8 @@ function refresh() {
 }
 function clearResult() { result = null; $('corrected').value = ''; $('result-meta').textContent = 'Review the suggestion before using it.'; }
 function setLanguage(value) {
-  const language = languageTools.normalize(value);
+  preferredLanguage = languageTools.normalize(value);
+  const language = engineMode === 'edit' ? 'en' : preferredLanguage;
   if (model.targetLanguage !== language) { model.targetLanguage = language; clearResult(); }
 }
 function setPrompt(value) {
@@ -216,6 +233,39 @@ async function connectServer({ automatic = false } = {}) {
   } finally { fileOperation = false; refresh(); }
 }
 
+async function loadEditFile(file, { remember = true } = {}) {
+  fileOperation = true; clearError(); selectedEditFile = file;
+  $('edit-file-name').textContent = `${file.name} · ${(file.size / 1e6).toFixed(0)} MB`;
+  refresh();
+  try {
+    await setModelState('loading', '', workspaceTabId);
+    await model.loadEdit(file);
+    await setKeepLoaded(true);
+    if (remember) { await rememberEditModel(file); rememberedEdit = await savedEditInfo(); }
+    await setModelState('ready', '', workspaceTabId);
+    $('edit-model-note').textContent = 'English correction only';
+    status(`Loaded in ${model.info.loadSeconds.toFixed(1)} seconds`);
+  } catch (error) {
+    if (!model.ready) await setKeepLoaded(false).catch(() => {});
+    showError(error); status(model.ready ? 'Loaded, but the edit model could not be remembered.' : 'Could not load the edit model. You can switch back to your other engine.');
+  } finally { fileOperation = false; refresh(); }
+}
+
+async function activateEngine() {
+  if (engineMode === 'server') return connectServer({ automatic: true });
+  if (engineMode === 'edit') {
+    const file = selectedEditFile || (rememberedEdit ? await savedEditFile() : null);
+    if (rememberedEdit && !file) throw new Error('The saved edit bundle is missing. Choose your .wwedit file again or use Forget model.');
+    if (file) return loadEditFile(file, { remember: false });
+    status('Choose a local edit-model bundle for English correction.');
+  } else {
+    const file = selectedFile || (remembered ? await savedModelFile() : null);
+    if (remembered && !file) throw new Error('The saved model is missing. Choose your GGUF file again or use Forget model.');
+    if (file) return loadFile(file, { remember: false, automatic: true });
+    status('Choose a GGUF file to load your browser model.');
+  }
+}
+
 async function restoreRememberedModel() {
   try {
     workspaceTabId = (await chrome.tabs.getCurrent())?.id;
@@ -232,7 +282,11 @@ async function restoreRememberedModel() {
     pageTranslationEnabled = settings.pageTranslationEnabled === true;
     pageTranslationLanguage = languageTools.normalize(settings.pageTranslationLanguage);
     remembered = await savedModelInfo();
-    if (engineMode === 'server') {
+    rememberedEdit = await savedEditInfo();
+    if (engineMode === 'edit') {
+      await setModelState('unloaded', '', workspaceTabId);
+      await activateEngine();
+    } else if (engineMode === 'server') {
       $('server-url').value = serverUrl;
       await connectServer({ automatic: true });
     } else if (remembered) {
@@ -259,22 +313,43 @@ $('engine-mode').addEventListener('change', async () => {
   if (next === previous) return;
   fileOperation = true; clearError(); refresh();
   try {
-    if (model.ready) await model.unload();
+    if (model.ready || model.runtime) await model.unload();
     await setKeepLoaded(false);
     model.setMode(next);
     engineMode = next;
+    setLanguage(preferredLanguage); clearResult();
     await chrome.storage.local.set({ engineMode });
     await setModelState('unloaded', '', workspaceTabId);
   } catch (error) {
     engineMode = previous;
+    setLanguage(preferredLanguage);
     if (!model.ready) model.setMode(previous);
     showError(error);
+    return;
   } finally { fileOperation = false; refresh(); }
-  if (engineMode === 'server') await connectServer();
-  else if (remembered) {
-    const file = await savedModelFile();
-    if (file) await loadFile(file, { remember: false, automatic: true });
+  try { await activateEngine(); } catch (error) { showError(error); refresh(); }
+});
+$('edit-file').addEventListener('change', () => {
+  selectedEditFile = $('edit-file').files[0] || null;
+  $('edit-file-name').textContent = selectedEditFile ? `${selectedEditFile.name} · ${(selectedEditFile.size / 1e6).toFixed(0)} MB` : 'Select a local edit-model bundle (.wwedit).';
+  clearError(); refresh();
+});
+$('load-edit').addEventListener('click', () => { if (selectedEditFile) loadEditFile(selectedEditFile); });
+$('unload-edit').addEventListener('click', async () => {
+  const task = model.unload(); refresh();
+  try { await task; await setKeepLoaded(false); await setModelState('unloaded', '', workspaceTabId); }
+  catch (error) { showError(error); }
+  finally { refresh(); }
+});
+$('forget-edit').addEventListener('click', async () => {
+  fileOperation = true; clearError(); refresh();
+  try {
+    await forgetEditModel(); rememberedEdit = null;
+    await setModelState(model.ready ? 'ready' : 'unloaded', '', workspaceTabId);
+    status(model.ready ? 'Saved edit bundle removed. The model stays loaded for this session.' : 'Saved edit bundle removed. Autoload is disabled.');
   }
+  catch (error) { showError(error); }
+  finally { fileOperation = false; refresh(); }
 });
 $('connect-server').addEventListener('click', () => connectServer());
 $('server-url').addEventListener('input', () => { clearError(); });
@@ -377,8 +452,9 @@ $('correct').addEventListener('click', async () => {
     result = correction;
     await setModelState('ready', '', workspaceTabId);
     $('corrected').value = result.corrected;
-    const unchanged = result.original.trim() === result.corrected;
-    $('result-meta').textContent = `${result.seconds.toFixed(1)} seconds · ${unchanged ? 'No changes suggested' : 'Suggestion ready'}`;
+    const unchanged = result.original.trim() === result.corrected.trim();
+    const elapsed = result.seconds < 1 ? `${Math.round(result.seconds * 1000)} ms` : `${result.seconds.toFixed(1)} seconds`;
+    $('result-meta').textContent = `${elapsed} · ${unchanged ? 'No changes suggested' : 'Suggestion ready'}`;
     status(unchanged ? 'No changes suggested. The model may still miss errors.' : 'Review the correction, then copy it when you are ready.');
   } catch (error) { showError(error); status('Could not finish this check. Try a shorter passage.'); }
   finally { refresh(); }
@@ -437,6 +513,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (sender.id !== chrome.runtime.id || sender.tab || message?.target !== 'model-workspace' || message.type !== 'correct-inline') return false;
   if (!initialized || fileOperation) { respond({ error: 'Your saved model is loading. Try again in a moment.', code: 'engine-loading' }); return false; }
   const translating = message.operation === 'translate';
+  if (translating && engineMode === 'edit') { respond({ error: 'Translation is unavailable with the edit model. Switch engines to translate.', code: 'translation-disabled' }); return false; }
   const enabled = message.pageSelection ? pageTranslationEnabled : translationEnabled;
   const language = message.pageSelection ? pageTranslationLanguage : translationLanguage;
   if (translating && !enabled) { respond({ error: 'Enable this translation option in Settings first.', code: 'translation-disabled' }); return false; }

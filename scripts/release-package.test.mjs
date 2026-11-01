@@ -21,8 +21,19 @@ test('release archives are deterministic and preserve every file byte', () => {
   assert.equal(sha256(createReleaseZip(files)), sha256(createReleaseZip(files)));
 });
 test('models, hidden files, and traversing archive paths are rejected', () => {
-  for (const name of ['model.gguf', 'model.safetensors', 'weights.bin', '.env', '../secret.txt', '/secret.txt', 'a\\secret.txt']) {
+  for (const name of ['model.gguf', 'model.safetensors', 'model.wwedit', 'model.onnx', 'weights.bin', '.env', '../secret.txt', '/secret.txt', 'a\\secret.txt']) {
     assert.throws(() => validatePackage({ ...files, [name]: Buffer.from('not for release') }, version), /Unexpected package path/);
+  }
+});
+test('research JSON and datasets cannot hide inside an otherwise valid extension package', () => {
+  for (const name of ['training/pairs.json', 'extension/training/pairs.json', 'benchmarks/report.json']) {
+    assert.throws(() => validatePackage({ ...files, [name]: Buffer.from('{}') }, version), /Private research/);
+  }
+});
+test('edit runtime loaders and their notices must be packaged together', () => {
+  for (const name of ['vendor/onnx/ort-wasm-simd-threaded.asyncify.mjs', 'vendor/onnx/LICENSE', 'vendor/tokenizers/LICENSE']) {
+    const copy = { ...files }; delete copy[name];
+    assert.throws(() => validatePackage(copy, version), /Missing package file/);
   }
 });
 test('a missing packaged worker is rejected', () => {

@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { removeTestProfile, waitForWorkspace } from './browser-profile.mjs';
 
 // Run serially in a disposable extension profile: no server or model download.
@@ -23,12 +24,19 @@ assert(/^[\w-]+$/.test(suffix), 'Invalid REPORT_NAME');
 // These switches apply only to this disposable test browser, never the user's.
 const gpuFlags = process.env.PERF_GPU_PREFERENCE === 'high'
   ? ['--force-high-performance-gpu', '--use-webgpu-power-preference=force-high-performance'] : [];
-const cases = JSON.parse(await readFile('engine-test/cases.json', 'utf8'));
+const casesFile = process.env.PERF_CASES_FILE || 'engine-test/cases.json';
+const casesText = await readFile(casesFile, 'utf8');
+const cases = JSON.parse(casesText);
+assert(Array.isArray(cases) && cases.length > 0 && cases.every(item => typeof item.input === 'string' && typeof item.reference === 'string'), 'Invalid benchmark cases');
+const maxTokens = Number(process.env.PERF_MAX_TOKENS || 128);
+assert(Number.isInteger(maxTokens) && maxTokens >= 1 && maxTokens <= 1024, 'PERF_MAX_TOKENS must be 1–1024');
 await mkdir('artifacts', { recursive: true });
 await mkdir('.browser-check', { recursive: true });
 const profile = await mkdtemp(path.resolve('.browser-check/editor-checks-'));
 const reportPath = `artifacts/performance-${suffix}.json`;
-const report = { date: new Date().toISOString(), modelPath, rounds, context: 1024, gpuFlags, probeOnly: !!process.env.PERF_PROBE, results: [], errors: [], externalRequests: [] };
+const report = { date: new Date().toISOString(), modelPath, rounds, context: 1024, gpuFlags, casesFile,
+  casesSha256: createHash('sha256').update(casesText).digest('hex'), maxTokens,
+  probeOnly: !!process.env.PERF_PROBE, results: [], errors: [], externalRequests: [] };
 let context;
 const median = values => { const sorted = [...values].sort((a, b) => a - b); return (sorted[Math.floor((sorted.length - 1) / 2)] + sorted[Math.floor(sorted.length / 2)]) / 2; };
 const save = () => writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
@@ -64,7 +72,7 @@ try {
   if (process.env.PERF_PROBE) names.length = 0;
   for (const name of names) {
     console.log(`Benchmarking ${name}…`);
-    const result = await page.evaluate(async ({ name, variant, cases, rounds }) => {
+    const result = await page.evaluate(async ({ name, variant, cases, rounds, maxTokens }) => {
       const { Wllama } = await import('./vendor/index.js');
       const { INSTRUCTION } = await import('./model-engine.js');
       const logs = [];
@@ -88,7 +96,7 @@ try {
           const start = performance.now();
           const response = await runtime.createChatCompletion({
             messages: [{ role: 'system', content: variant.instruction || INSTRUCTION }, { role: 'user', content: input }],
-            temperature: 0, seed: 42, max_tokens: 128, top_p: 1, top_k: 1,
+            temperature: 0, seed: 42, max_tokens: maxTokens, top_p: 1, top_k: 1,
             repeat_penalty: 1, presence_penalty: 0, cache_prompt: !!variant.cache,
             chat_template_kwargs: { enable_thinking: false },
             abortSignal: AbortSignal.timeout(60000),
@@ -101,19 +109,19 @@ try {
         for (let round = 0; round < rounds; round++) {
           // Reverse every other round to catch dependence on previous sentences.
           const ordered = round % 2 ? [...cases].reverse() : cases;
-          for (const item of ordered) samples.push({ ...await check(item.input), round, category: item.category, reference: item.reference });
+          for (const item of ordered) samples.push({ ...item, ...await check(item.input), round });
         }
         return { name, options, instruction: variant.instruction || INSTRUCTION, cache: !!variant.cache, context: context.n_ctx, threads: runtime.getNumThreads(),
           loadSeconds, warmup, samples, logs: logs.filter(line => /adapter|device|GPU|error|cache|offload/i.test(line)).slice(-45) };
       } finally { await runtime.exit(); }
-    }, { name, variant: variants[name], cases, rounds });
+    }, { name, variant: variants[name], cases, rounds, maxTokens });
     const times = result.samples.map(sample => sample.seconds);
     result.summary = { medianSeconds: median(times), p90Seconds: [...times].sort((a, b) => a - b)[Math.ceil(times.length * 0.9) - 1],
       medianPromptMs: median(result.samples.map(sample => sample.timings?.prompt_ms ?? NaN)),
       medianGenerationMs: median(result.samples.map(sample => sample.timings?.predicted_ms ?? NaN)),
       medianCachedTokens: median(result.samples.map(sample => sample.usage?.prompt_tokens_details?.cached_tokens ?? 0)),
       referenceMatches: result.samples.filter(sample => sample.output === sample.reference).length,
-      controlsUnchanged: result.samples.filter(sample => sample.category === 'correct control' && sample.output === sample.input).length,
+      controlsUnchanged: result.samples.filter(sample => sample.input === sample.reference && sample.output === sample.input).length,
       total: times.length, incomplete: result.samples.filter(sample => sample.finishReason !== 'stop').length };
     const baseline = report.results.find(item => item.name === 'baseline');
     if (baseline) {

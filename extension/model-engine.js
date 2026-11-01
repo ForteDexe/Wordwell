@@ -85,6 +85,33 @@ export class LocalModel {
     if (level === 'error') console.error(message);
   }
 
+  async loadEdit(file) {
+    if (this.engineMode !== 'edit') throw new Error('Select Edit model before loading this bundle.');
+    if (this.busy || this.runtime || this.ready) throw new Error('Unload the active model first.');
+    if (!file?.name?.toLowerCase().endsWith('.wwedit')) throw new Error('Choose a Wordwell edit-model bundle (.wwedit).');
+    this.busy = true;
+    const started = performance.now();
+    try {
+      this.onStatus('Loading the edit model…');
+      const { EditModel } = await import('./edit-model.js');
+      this.runtime = new EditModel();
+      const details = await this.runtime.load(file);
+      this.loadCount++;
+      this.info = { engine: 'GECToR / ONNX Runtime', model: details.name, architecture: details.architecture,
+        file: file.name, bytes: file.size, context: details.context, inputLimit: details.inputLimit, safetyMargin: details.safetyMargin,
+        backend: details.backend, license: details.license,
+        loadSeconds: (performance.now() - started) / 1000, instanceId: crypto.randomUUID(), loadCount: this.loadCount,
+        capabilities: { correctionLanguages: ['en'], translation: false, customPrompt: false } };
+      this.ready = true;
+      this.onStatus('English correction is ready.');
+      return this.info;
+    } catch (error) {
+      await this.runtime?.exit().catch(() => {});
+      this.runtime = null; this.ready = false; this.info = null;
+      throw error;
+    } finally { this.busy = false; }
+  }
+
   async load(file, { contextSize = CONTEXT_SIZE } = {}) {
     if (this.engineMode !== 'browser') throw new Error('Switch to Browser model before loading a GGUF file.');
     if (this.busy || this.runtime) throw new Error('Unload the current model before loading another.');
@@ -167,6 +194,7 @@ export class LocalModel {
   }
 
   async countRequestTokens(request, text) {
+    if (this.engineMode === 'edit') return this.runtime.count(text);
     if (this.engineMode === 'browser') return this.runtime.countChatTokens(request);
     const applied = await this.serverFetch('/apply-template', { method: 'POST', body: JSON.stringify({ ...request, add_generation_prompt: true }) });
     if (typeof applied?.prompt !== 'string') throw new Error('The llama.cpp server could not apply its chat template.');
@@ -196,6 +224,11 @@ export class LocalModel {
     if (this.busy) throw new Error('A check is already running.');
     if (!text.trim()) throw new Error('Enter a sentence or a short paragraph.');
     if (text.length > MAX_TEXT_LENGTH) throw new Error('Please check a shorter section (up to 50,000 characters).');
+    if (this.engineMode === 'edit') {
+      if (operation !== 'correct') throw new Error('Translation is unavailable with the edit model. Switch to your browser model or server.');
+      if (language !== 'en') throw new Error('The edit model supports English correction only.');
+      return this.processEdits(text, customPrompt);
+    }
     this.busy = true;
     const translating = operation === 'translate';
     const request = value => translating ? this.translationRequest(value, language) : this.chatRequest(value, language, customPrompt);
@@ -231,16 +264,44 @@ export class LocalModel {
     } finally { this.busy = false; }
   }
 
+  async processEdits(text, customPrompt) {
+    this.busy = true;
+    const started = performance.now();
+    try {
+      await this.tokenCountTask.catch(() => {});
+      this.checkCount++;
+      const output = [], chunks = [];
+      // Line separators stay literal, including CRLF. Each line keeps its own layout outside edits.
+      for (const line of text.split(/(\r\n|\r|\n)/)) {
+        if (!line.trim()) { output.push(line); continue; }
+        const plan = await planCorrection(line, value => this.runtime.count(value), this.info.inputLimit, () => 0, 0);
+        for (const part of plan) {
+          if (part.literal !== undefined) { output.push(part.literal); continue; }
+          if (chunks.length >= 128) throw new Error('This passage needs too many checks. Select a shorter section.');
+          const result = await this.runtime.correct(part.text);
+          output.push(part.prefix, result.corrected, part.suffix);
+          chunks.push({ promptTokens: part.promptTokens, textTokens: part.textTokens, maxOutputTokens: 0,
+            completionTokens: 0, splitLevel: part.level, passes: result.passes });
+        }
+      }
+      const tokens = chunks.reduce((sum, part) => sum + part.textTokens, 0);
+      return { original: text, corrected: output.join(''), operation: 'correct', language: 'en', promptOverride: customPrompt,
+        seconds: (performance.now() - started) / 1000, usage: { prompt_tokens: tokens, completion_tokens: 0, total_tokens: tokens },
+        budget: { context: this.info.context, safetyMargin: this.info.safetyMargin, chunks } };
+    } finally { this.busy = false; }
+  }
+
   async unload() {
     if (this.busy) throw new Error('Wait for the current operation to finish.');
     this.busy = true;
     try {
       await this.tokenCountTask.catch(() => {});
-      await this.runtime?.exit();
+      const runtime = this.runtime;
       this.runtime = null;
       this.serverModel = null;
       this.ready = false;
       this.info = null;
+      await runtime?.exit();
       this.onStatus('Model unloaded.');
     } finally { this.busy = false; }
   }

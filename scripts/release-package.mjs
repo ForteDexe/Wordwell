@@ -2,6 +2,7 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { zipSync, unzipSync } from 'fflate';
+import { assertPublicPaths } from './check-public-boundary.mjs';
 
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
@@ -29,15 +30,20 @@ export function validatePackage(files, version) {
   };
   for (const name of Object.keys(files)) {
     if (name.includes('\\') || name.startsWith('/') || name.split('/').some(part => !part || part.startsWith('.'))
-      || !/^[\w/.-]+$/.test(name) || (!/\.(js|css|html|json|png|svg|txt|wasm)$/i.test(name) && !/(^|\/)(LICENSE|NOTICE|LLAMA-LICENSE)$/.test(name))) {
+      || !/^[\w/.-]+$/.test(name) || (!/\.(js|mjs|css|html|json|png|svg|txt|wasm)$/i.test(name) && !/(^|\/)(LICENSE|NOTICE|LLAMA-LICENSE)$/.test(name))) {
       throw new Error(`Unexpected package path: ${name}`);
     }
   }
   const manifest = JSON.parse(Buffer.from(requireFile('manifest.json')).toString());
+  assertPublicPaths(Object.keys(files));
   if (manifest.manifest_version !== 3 || manifest.name !== 'Wordwell' || manifest.version !== version) throw new Error('Release manifest does not match the package name and version.');
   for (const name of ['workspace.html', 'workspace.js', 'inline.js', 'settings.js', 'benchmark.js', 'benchmark-cases.json', 'privacy.html', 'privacy.css', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt',
     'licenses/harper-LICENSE.txt', 'vendor/LICENSE', 'vendor/LLAMA-LICENSE', 'vendor/index.js',
     'vendor/main-worker.js', 'vendor/pthread-worker.js', 'vendor/opfs-worker.js', 'vendor/wasm/wllama.wasm']) requireFile(name);
+  for (const name of ['edit-model.js', 'edit-model-worker.js', 'edit-model-core.js', 'edit-model-cache.js',
+    'vendor/onnx/ort.webgpu.bundle.min.mjs', 'vendor/onnx/ort-wasm-simd-threaded.asyncify.mjs',
+    'vendor/onnx/ort-wasm-simd-threaded.asyncify.wasm', 'vendor/onnx/LICENSE', 'vendor/onnx/ThirdPartyNotices.txt',
+    'vendor/tokenizers/tokenizers.mjs', 'vendor/tokenizers/LICENSE']) requireFile(name);
   for (const paths of [manifest.icons, manifest.action?.default_icon]) {
     for (const size of [16, 32, 48, 128]) {
       const png = Buffer.from(requireFile(paths?.[size]));
@@ -51,6 +57,7 @@ export function validatePackage(files, version) {
   if (csp !== expectedCsp || /'unsafe-eval'|'unsafe-inline'|https:\/\//.test(csp)) throw new Error('Unexpected extension CSP.');
   if (Buffer.from(files['inline.js']).includes(Buffer.from('__INLINE_'))) throw new Error('Unbundled inline placeholder in release.');
   if (Buffer.from(files['vendor/wasm/wllama.wasm']).subarray(0, 4).toString('hex') !== '0061736d') throw new Error('Invalid packaged WASM.');
+  if (Buffer.from(files['vendor/onnx/ort-wasm-simd-threaded.asyncify.wasm']).subarray(0, 4).toString('hex') !== '0061736d') throw new Error('Invalid packaged edit-model WASM.');
   const expected = ['clipboardWrite', 'contextMenus', 'storage', 'unlimitedStorage'];
   if (JSON.stringify([...(manifest.permissions || [])].sort()) !== JSON.stringify(expected)) throw new Error('Review changed release permissions.');
   const expectedHosts = ['http://127.0.0.1/*', 'http://localhost/*'];

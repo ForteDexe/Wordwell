@@ -24,6 +24,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -50,8 +51,11 @@ jobs:
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
+      - name: Check public source boundary
+        run: node scripts/check-public-boundary.mjs
+
       - name: Test token budgeting and text differences
-        run: node --test scripts/token-budget.test.mjs scripts/text-diff.test.mjs
+        run: node --test scripts/token-budget.test.mjs scripts/text-diff.test.mjs scripts/edit-model.test.mjs
 
       - name: Test extension packaging
         run: npm run test:package

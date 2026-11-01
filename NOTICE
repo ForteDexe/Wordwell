@@ -16,6 +16,10 @@ Third-party components keep their respective licenses:
   in the source repository and vendor/LICENSE in the extension package.
 - llama.cpp is MIT licensed. Its license is included at runtime/wllama/LLAMA-LICENSE
   in the source repository and vendor/LLAMA-LICENSE in the extension package.
+- ONNX Runtime Web is MIT licensed. Its license and third-party notices are in
+  runtime/edit-model/ in source and vendor/onnx/ in the extension package.
+- Hugging Face Tokenizers.js is Apache-2.0 licensed. Its license is in the
+  installed npm package and vendor/tokenizers/ in the extension package.
 
 Model weights are downloaded separately, are not included in the extension,
 and remain subject to their own licenses. Wordwell is not an official Harper,

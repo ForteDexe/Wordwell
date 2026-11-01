@@ -13,7 +13,7 @@ export const ENGINE_DEFAULTS = Object.freeze({
 });
 
 export function normalizeEngineMode(value) {
-  return value === 'server' ? 'server' : 'browser';
+  return value === 'server' || value === 'edit' ? value : 'browser';
 }
 
 export function normalizeServerUrl(value) {

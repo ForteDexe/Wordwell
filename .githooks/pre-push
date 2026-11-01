@@ -1,0 +1,9 @@
+#!/bin/sh
+if command -v node >/dev/null 2>&1; then
+  exec node scripts/check-public-boundary.mjs --pre-push
+elif [ -x .conda/node.exe ]; then
+  exec .conda/node.exe scripts/check-public-boundary.mjs --pre-push
+else
+  echo 'Node.js is required to check the public source boundary before pushing.' >&2
+  exit 1
+fi

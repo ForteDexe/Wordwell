@@ -7,7 +7,7 @@ import { createWritingTools } from '../extension/writing-tools.js';
 import { createAutoChecker } from '../extension/auto-check.js';
 import { createLanguageTools } from '../extension/languages.js';
 import { resetOutputDirectory } from './build-paths.mjs';
-import { TRANSLATION_DEFAULTS } from '../extension/settings.js';
+import { TRANSLATION_DEFAULTS, ENGINE_DEFAULTS } from '../extension/settings.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = await resetOutputDirectory('extension');
@@ -27,7 +27,7 @@ const inlineCSS = await readFile(path.join(root, 'extension/inline.css'), 'utf8'
 await writeFile(path.join(output, 'inline.js'), inlineSource
   .replace("'__INLINE_CSS__'", () => JSON.stringify(inlineCSS))
   .replace("'__INLINE_DIFF__'", () => diffText.toString())
-  .replace("'__INLINE_DEFAULT_SETTINGS__'", () => JSON.stringify(TRANSLATION_DEFAULTS))
+  .replace("'__INLINE_DEFAULT_SETTINGS__'", () => JSON.stringify({ ...TRANSLATION_DEFAULTS, engineMode: ENGINE_DEFAULTS.engineMode }))
   .replace("'__INLINE_WRITING_TOOLS__'", () => createWritingTools.toString())
   .replace("'__INLINE_LANGUAGE_TOOLS__'", () => createLanguageTools.toString())
   .replace("'__INLINE_AUTO_CHECKER__'", () => createAutoChecker.toString()));
@@ -37,5 +37,15 @@ await packageWorkers(path.join(root, 'node_modules/@wllama/wllama'), path.join(o
 await cp(path.join(root, 'node_modules/@wllama/wllama/LICENCE'), path.join(output, 'vendor/LICENSE'));
 await cp(path.join(root, 'runtime/wllama/LLAMA-LICENSE'), path.join(output, 'vendor/LLAMA-LICENSE'));
 await writeFile(path.join(output, 'vendor/NOTICE.txt'), 'wllama 3.8.1: https://github.com/ngxson/wllama\nMIT license. Built-in llama.cpp runtime: b11364-46ca246.\nLocal addition: exact chat prompt token counting. Source and rebuild instructions: runtime/wllama/.\n');
+await mkdir(path.join(output, 'vendor/onnx'), { recursive: true });
+await mkdir(path.join(output, 'vendor/tokenizers'), { recursive: true });
+for (const name of ['ort.webgpu.bundle.min.mjs', 'ort-wasm-simd-threaded.asyncify.mjs', 'ort-wasm-simd-threaded.asyncify.wasm']) {
+  await cp(path.join(root, 'node_modules/onnxruntime-web/dist', name), path.join(output, 'vendor/onnx', name));
+}
+await cp(path.join(root, 'node_modules/onnxruntime-web/README.md'), path.join(output, 'vendor/onnx/README.txt'));
+await cp(path.join(root, 'runtime/edit-model/ONNX-LICENSE.txt'), path.join(output, 'vendor/onnx/LICENSE'));
+await cp(path.join(root, 'runtime/edit-model/ONNX-ThirdPartyNotices.txt'), path.join(output, 'vendor/onnx/ThirdPartyNotices.txt'));
+await cp(path.join(root, 'node_modules/@huggingface/tokenizers/dist/tokenizers.mjs'), path.join(output, 'vendor/tokenizers/tokenizers.mjs'));
+await cp(path.join(root, 'node_modules/@huggingface/tokenizers/LICENSE'), path.join(output, 'vendor/tokenizers/LICENSE'));
 const manifest = JSON.parse(await readFile(path.join(output, 'manifest.json'), 'utf8'));
 console.log(`${manifest.name} ${manifest.version}: ${output}`);

@@ -71,6 +71,7 @@ button:disabled { opacity: .45; cursor: default; } button:focus-visible { outlin
 #error { background: #fff3ed; border: 1px solid #efd3bf; color: #844423; padding: 12px; border-radius: 6px; font-size: 14px; }
 footer { font-size: 12px; color: #6a7a72; padding: 0 3px 24px; } summary { cursor: pointer; margin-top: 14px; } pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
 [hidden] { display: none !important; }
+.settings-group.unavailable > h3 { color: #647572; }
 .privacy-links { margin: 0; padding: 0 3px 24px; color: #65776f; }
 .privacy-links a, #setup-privacy a { color: #18594e; text-underline-offset: 3px; }
 .benchmark-panel { font-size: 12px; color: #6a7a72; padding: 0 3px; }

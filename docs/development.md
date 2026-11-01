@@ -33,6 +33,30 @@ npm run test:extension
 
 For supported machines, `$env:PERF_GPU_PREFERENCE = 'high'` adds the GPU switches only to the isolated test browser. The normal extension relies on Chrome's chosen adapter. See [performance notes](performance.md).
 
+The [English edit engine](edit-engine.md) uses
+a separate local `.wwedit` bundle. `npm run test:edit` checks its data format,
+alignment, edits, and encoder-only budgeting; `test:edit-browser` exercises a real
+bundle in a disposable Chrome profile. This mode does not replace existing GGUF
+or server workflows.
+
+## Public source boundary
+
+Model training, dataset curation, exports and full research benchmarks are maintained
+separately. Building this extension never requires access to a training repository.
+Only inference runtime code, model-format support and public functional fixtures
+belong in this repository. Model weights and private datasets must not be committed.
+
+```powershell
+npm run setup:hooks
+npm run check:public
+```
+
+The pre-push hook checks every new commit, so adding private files and deleting them
+in a later commit still fails. CI repeats the source/history check. Release packaging
+also rejects research directories, dataset files and model binaries. Ignore rules
+help prevent accidental staging; they do not replace the history and package checks.
+Previously published history remains intact.
+
 ## Release build
 
 ```powershell
