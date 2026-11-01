@@ -20,6 +20,10 @@ Third-party components keep their respective licenses:
   runtime/edit-model/ in source and vendor/onnx/ in the extension package.
 - Hugging Face Tokenizers.js is Apache-2.0 licensed. Its license is in the
   installed npm package and vendor/tokenizers/ in the extension package.
+- nspell and is-buffer are MIT licensed. The English spelling data from
+  dictionary-en and dictionary-en-gb retains its MIT and BSD licenses and
+  original notices. See vendor/spelling/ in the extension package and
+  extension/THIRD_PARTY_NOTICES.txt in source.
 
 Model weights are downloaded separately, are not included in the extension,
 and remain subject to their own licenses. Wordwell is not an official Harper,

@@ -3,11 +3,12 @@ import { savedModelInfo, savedModelFile, rememberModel, forgetModel } from './mo
 import { savedEditInfo, savedEditFile, rememberEditModel, forgetEditModel } from './edit-model-cache.js';
 import { setModelState } from './model-state.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, outputAllowance } from './token-budget.js';
-import { TRANSLATION_DEFAULTS, ENGINE_DEFAULTS, normalizeEngineMode, normalizeServerUrl } from './settings.js';
+import { TRANSLATION_DEFAULTS, ENGINE_DEFAULTS, SPELLING_DEFAULTS, normalizeEngineMode, normalizeServerUrl } from './settings.js';
 import { languageTools } from './languages.js';
 import { createBenchmark } from './benchmark.js';
 
 const $ = id => document.getElementById(id);
+$('extension-version').textContent = `v${chrome.runtime.getManifest().version}`;
 $('gpu-settings').addEventListener('click', async event => {
   event.preventDefault();
   const note = $('gpu-tip-status');
@@ -53,7 +54,7 @@ function refreshTokenCount() {
   const text = $('original').value.trim(), editMode = engineMode === 'edit', activeContext = model.info?.context ?? (editMode ? null : contextSize);
   const contextLabel = activeContext?.toLocaleString() ?? '—';
   const tokenLabel = editMode ? 'input tokens' : 'prompt tokens';
-  const key = JSON.stringify([model.info?.instanceId, model.targetLanguage, model.customPrompt, text]);
+  const key = JSON.stringify([model.info?.instanceId, model.targetLanguage, model.customPrompt, model.spellingEnabled, text]);
   if (key !== tokenKey) { tokenKey = key; tokenPreview = null; clearTimeout(tokenTimer); tokenTimer = null; }
   const counter = $('token-count');
   if (!text) {
@@ -70,10 +71,11 @@ function refreshTokenCount() {
     counter.textContent = `${tokenPreview.error ? '—' : tokenPreview.prompt_tokens.toLocaleString()} / ${contextLabel} ${tokenLabel}`;
     if (tokenPreview.error) counter.title = `Token count unavailable: ${tokenPreview.error}`;
     else {
-      if (editMode) { counter.title = `Exact input count, including boundary tokens. Sections above ${model.info.inputLimit.toLocaleString()} tokens are split, reserving ${model.info.safetyMargin.toLocaleString()} tokens for edits.`; return; }
+      const spellingNote = model.spellingEnabled && model.targetLanguage === 'en' ? ' Includes spelling suggestions.' : '';
+      if (editMode) { counter.title = `Exact input count, including boundary tokens. Sections above ${model.info.inputLimit.toLocaleString()} tokens are split, reserving ${model.info.safetyMargin.toLocaleString()} tokens for edits.${spellingNote}`; return; }
       const output = outputAllowance(tokenPreview.text_tokens);
       const split = tokenPreview.prompt_tokens + output + CONTEXT_MARGIN > activeContext;
-      counter.title = `${tokenPreview.text_tokens.toLocaleString()} text tokens plus instructions and chat formatting. Reserves ${output.toLocaleString()} output tokens and ${CONTEXT_MARGIN} safety tokens.${split ? ' This text needs splitting into smaller checks.' : ''}`;
+      counter.title = `${tokenPreview.text_tokens.toLocaleString()} text tokens plus instructions and chat formatting. Reserves ${output.toLocaleString()} output tokens and ${CONTEXT_MARGIN} safety tokens.${split ? ' This text needs splitting into smaller checks.' : ''}${spellingNote}`;
     }
     return;
   }
@@ -136,6 +138,9 @@ function refresh() {
   $('context-size').disabled = busy || !browserMode;
   $('target-language').value = model.targetLanguage;
   $('target-language').disabled = busy || editMode;
+  $('spelling-enabled').checked = model.spellingEnabled;
+  $('spelling-enabled').disabled = busy || model.targetLanguage !== 'en';
+  $('spelling-setting').classList.toggle('unavailable', model.targetLanguage !== 'en');
   $('translation-enabled').checked = translationEnabled;
   $('translation-enabled').disabled = busy || editMode;
   $('translation-language').value = translationLanguage;
@@ -174,6 +179,10 @@ function setLanguage(value) {
 function setPrompt(value) {
   const prompt = languageTools.normalizePrompt(value);
   if (model.customPrompt !== prompt) { model.customPrompt = prompt; clearResult(); }
+}
+function setSpelling(value) {
+  const enabled = value === true;
+  if (model.spellingEnabled !== enabled) { model.setSpellingEnabled(enabled); clearResult(); }
 }
 function useSelection(selection) {
   if (!selection || selection.id === lastSelectionId) return;
@@ -269,13 +278,14 @@ async function activateEngine() {
 async function restoreRememberedModel() {
   try {
     workspaceTabId = (await chrome.tabs.getCurrent())?.id;
-    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', ...TRANSLATION_DEFAULTS, ...ENGINE_DEFAULTS });
+    const settings = await chrome.storage.local.get({ contextSize: CONTEXT_SIZE, targetLanguage: languageTools.defaultLanguage, customPrompt: '', ...TRANSLATION_DEFAULTS, ...ENGINE_DEFAULTS, ...SPELLING_DEFAULTS });
     contextSize = normalizeContextSize(settings.contextSize) ?? CONTEXT_SIZE;
     engineMode = normalizeEngineMode(settings.engineMode);
     try { serverUrl = normalizeServerUrl(settings.serverUrl); } catch { serverUrl = ENGINE_DEFAULTS.serverUrl; }
     model.setMode(engineMode);
     setLanguage(settings.targetLanguage);
     setPrompt(settings.customPrompt);
+    setSpelling(settings.spellingEnabled);
     translationEnabled = settings.translationEnabled === true;
     translationLanguage = languageTools.normalize(settings.translationLanguage);
     instantTranslation = settings.instantTranslation === true;
@@ -386,6 +396,13 @@ $('target-language').addEventListener('change', async () => {
   catch (error) { setLanguage(previous); showError(error); }
   finally { settingsSaving = false; refresh(); }
 });
+$('spelling-enabled').addEventListener('change', async () => {
+  const previous = model.spellingEnabled;
+  setSpelling($('spelling-enabled').checked); settingsSaving = true; refresh();
+  try { await chrome.storage.local.set({ spellingEnabled: model.spellingEnabled }); }
+  catch (error) { setSpelling(previous); showError(error); }
+  finally { settingsSaving = false; refresh(); }
+});
 async function saveTranslationSettings() {
   const previous = { translationEnabled, translationLanguage, instantTranslation };
   translationEnabled = $('translation-enabled').checked;
@@ -448,7 +465,7 @@ $('correct').addEventListener('click', async () => {
   const checking = model.correct($('original').value); refresh();
   try {
     const correction = await checking;
-    if (correction.language !== model.targetLanguage || correction.promptOverride !== model.customPrompt) { status('Correction settings changed. Check your text again.'); return; }
+    if (correction.language !== model.targetLanguage || correction.promptOverride !== model.customPrompt || Boolean(correction.spellingEnabled) !== model.spellingEnabled) { status('Correction settings changed. Check your text again.'); return; }
     result = correction;
     await setModelState('ready', '', workspaceTabId);
     $('corrected').value = result.corrected;
@@ -471,6 +488,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.autoCheck) $('auto-check').checked = changes.autoCheck.newValue !== false;
   if (area === 'local' && changes.targetLanguage) { setLanguage(changes.targetLanguage.newValue); refresh(); }
   if (area === 'local' && changes.customPrompt) { setPrompt(changes.customPrompt.newValue); refresh(); }
+  if (area === 'local' && changes.spellingEnabled) { setSpelling(changes.spellingEnabled.newValue); refresh(); }
   if (area === 'local' && (changes.translationEnabled || changes.translationLanguage || changes.instantTranslation)) {
     if (changes.translationEnabled) translationEnabled = changes.translationEnabled.newValue === true;
     if (changes.translationLanguage) translationLanguage = languageTools.normalize(changes.translationLanguage.newValue ?? TRANSLATION_DEFAULTS.translationLanguage);
@@ -534,7 +552,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       const currentEnabled = message.pageSelection ? pageTranslationEnabled : translationEnabled;
       const currentLanguage = message.pageSelection ? pageTranslationLanguage : translationLanguage;
       const settingsMatch = translating ? currentEnabled && correction.language === currentLanguage
-        : correction.language === model.targetLanguage && correction.promptOverride === model.customPrompt;
+        : correction.language === model.targetLanguage && correction.promptOverride === model.customPrompt && Boolean(correction.spellingEnabled) === model.spellingEnabled;
       response = settingsMatch ? { result: correction }
         : { error: 'Correction settings changed. Please try again.', code: 'superseded' };
     }

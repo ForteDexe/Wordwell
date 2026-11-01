@@ -8,6 +8,7 @@ import { createAutoChecker } from '../extension/auto-check.js';
 import { createLanguageTools } from '../extension/languages.js';
 import { resetOutputDirectory } from './build-paths.mjs';
 import { TRANSLATION_DEFAULTS, ENGINE_DEFAULTS } from '../extension/settings.js';
+import { build } from 'esbuild';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = await resetOutputDirectory('extension');
@@ -47,5 +48,23 @@ await cp(path.join(root, 'runtime/edit-model/ONNX-LICENSE.txt'), path.join(outpu
 await cp(path.join(root, 'runtime/edit-model/ONNX-ThirdPartyNotices.txt'), path.join(output, 'vendor/onnx/ThirdPartyNotices.txt'));
 await cp(path.join(root, 'node_modules/@huggingface/tokenizers/dist/tokenizers.mjs'), path.join(output, 'vendor/tokenizers/tokenizers.mjs'));
 await cp(path.join(root, 'node_modules/@huggingface/tokenizers/LICENSE'), path.join(output, 'vendor/tokenizers/LICENSE'));
+const spelling = path.join(output, 'vendor/spelling');
+await mkdir(spelling, { recursive: true });
+const aff = await readFile(path.join(root, 'node_modules/dictionary-en/index.aff'));
+if (!aff.equals(await readFile(path.join(root, 'node_modules/dictionary-en-gb/index.aff')))) throw new Error('Spelling dictionaries need matching affix rules.');
+await build({ entryPoints: [path.join(root, 'node_modules/nspell/lib/index.js')], outfile: path.join(spelling, 'nspell.mjs'), bundle: true, format: 'esm', platform: 'browser', target: 'es2022', minify: true, legalComments: 'eof' });
+await writeFile(path.join(spelling, 'en.aff'), aff);
+const entries = new Set();
+for (const pkg of ['dictionary-en', 'dictionary-en-gb']) {
+  const lines = (await readFile(path.join(root, 'node_modules', pkg, 'index.dic'), 'utf8')).trim().split(/\r?\n/);
+  if (!/^\d+$/.test(lines.shift())) throw new Error('Unexpected spelling dictionary header.');
+  for (const line of lines) if (line) entries.add(line);
+  await cp(path.join(root, 'node_modules', pkg, 'license'), path.join(spelling, `${pkg}-LICENSE.txt`));
+}
+// Parse once: nspell's successive dictionary() calls regenerate compound rules
+// incorrectly. The matching affixes let us safely merge the raw entries first.
+await writeFile(path.join(spelling, 'en.dic'), `${entries.size}\n${[...entries].join('\n')}\n`);
+await cp(path.join(root, 'node_modules/nspell/license'), path.join(spelling, 'nspell-LICENSE.txt'));
+await cp(path.join(root, 'node_modules/is-buffer/LICENSE'), path.join(spelling, 'is-buffer-LICENSE.txt'));
 const manifest = JSON.parse(await readFile(path.join(output, 'manifest.json'), 'utf8'));
 console.log(`${manifest.name} ${manifest.version}: ${output}`);

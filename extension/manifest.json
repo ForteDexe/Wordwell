@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Wordwell",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Write clearly. Translate locally. Grammar correction and translation with a model running on your computer.",
   "minimum_chrome_version": "137",
   "permissions": ["contextMenus", "storage", "clipboardWrite", "unlimitedStorage"],

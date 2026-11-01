@@ -1,7 +1,8 @@
 import { Wllama } from './vendor/index.js';
 import { CONTEXT_SIZE, normalizeContextSize, CONTEXT_MARGIN, MAX_TEXT_LENGTH, planCorrection } from './token-budget.js';
 import { languageTools } from './languages.js';
-import { ENGINE_DEFAULTS, normalizeEngineMode, normalizeServerUrl } from './settings.js';
+import { ENGINE_DEFAULTS, SPELLING_DEFAULTS, normalizeEngineMode, normalizeServerUrl } from './settings.js';
+import { SpellingService } from './spelling.js';
 
 export { CONTEXT_SIZE };
 export const INSTRUCTION = languageTools.instruction(languageTools.defaultLanguage);
@@ -22,6 +23,17 @@ export class LocalModel {
     this.engineMode = ENGINE_DEFAULTS.engineMode;
     this.serverUrl = ENGINE_DEFAULTS.serverUrl;
     this.serverModel = null;
+    this.spellingEnabled = SPELLING_DEFAULTS.spellingEnabled;
+    this.speller = new SpellingService();
+  }
+
+  setSpellingEnabled(value) {
+    this.spellingEnabled = value === true;
+    if (!this.spellingEnabled && !this.busy) this.speller.reset();
+  }
+
+  async spellingSource(text, language, enabled) {
+    return enabled && language === 'en' ? (await this.speller.correct(text)).corrected : text;
   }
 
   setMode(value) {
@@ -177,11 +189,17 @@ export class LocalModel {
     const instanceId = this.info?.instanceId;
     const language = this.targetLanguage;
     const customPrompt = this.customPrompt;
+    const spellingEnabled = this.spellingEnabled;
     // Serialize previews with each other. Inference and unload wait for the
     // current preview; queued previews yield when either operation starts.
-    const task = this.tokenCountTask.catch(() => {}).then(() => {
-      if (!this.ready || this.busy || this.info?.instanceId !== instanceId || this.runtime !== runtime || this.targetLanguage !== language || this.customPrompt !== customPrompt) return null;
-      return this.countRequestTokens(this.chatRequest(text.trim(), language, customPrompt), text.trim());
+    const task = this.tokenCountTask.catch(() => {}).then(async () => {
+      const current = () => this.ready && !this.busy && this.info?.instanceId === instanceId && this.runtime === runtime && this.targetLanguage === language && this.customPrompt === customPrompt && this.spellingEnabled === spellingEnabled;
+      if (!current()) return null;
+      const source = await this.spellingSource(text.trim(), language, spellingEnabled);
+      if (!current()) return null;
+      return this.countRequestTokens(this.chatRequest(source, language, customPrompt), source);
+    }).finally(() => {
+      if (!this.spellingEnabled && !this.busy) this.speller.reset();
     });
     this.tokenCountTask = task;
     return task;
@@ -230,11 +248,13 @@ export class LocalModel {
       return this.processEdits(text, customPrompt);
     }
     this.busy = true;
+    const spellingEnabled = this.spellingEnabled;
     const translating = operation === 'translate';
     const request = value => translating ? this.translationRequest(value, language) : this.chatRequest(value, language, customPrompt);
     const started = performance.now();
     try {
       await this.tokenCountTask.catch(() => {});
+      const source = translating ? text : await this.spellingSource(text, language, spellingEnabled);
       this.checkCount += 1;
       const contextSize = this.info.context;
       if (customPrompt) {
@@ -243,7 +263,7 @@ export class LocalModel {
       }
       // Translation can expand substantially, especially between scripts.
       const allowance = translating ? tokens => Math.max(256, tokens * 3 + 32) : undefined;
-      const plan = await planCorrection(text, value => this.countRequestTokens(request(value), value), contextSize, allowance);
+      const plan = await planCorrection(source, value => this.countRequestTokens(request(value), value), contextSize, allowance);
       const chunks = plan.filter(part => part.text !== undefined);
       const output = [], budget = [], usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
       for (const part of plan) {
@@ -259,20 +279,22 @@ export class LocalModel {
         budget.push({ promptTokens: part.promptTokens, textTokens: part.textTokens, maxOutputTokens: maxTokens, completionTokens: response.usage.completion_tokens, splitLevel: part.level });
         for (const key of Object.keys(usage)) usage[key] += response.usage[key] || 0;
       }
-      return { original: text, corrected: output.join(''), operation, language, promptOverride: customPrompt, seconds: (performance.now() - started) / 1000, usage,
+      return { original: text, corrected: output.join(''), operation, language, promptOverride: customPrompt, spellingEnabled, seconds: (performance.now() - started) / 1000, usage,
         budget: { context: contextSize, safetyMargin: CONTEXT_MARGIN, chunks: budget } };
-    } finally { this.busy = false; }
+    } finally { this.busy = false; if (!this.spellingEnabled) this.speller.reset(); }
   }
 
   async processEdits(text, customPrompt) {
     this.busy = true;
+    const spellingEnabled = this.spellingEnabled;
     const started = performance.now();
     try {
       await this.tokenCountTask.catch(() => {});
+      const source = await this.spellingSource(text, 'en', spellingEnabled);
       this.checkCount++;
       const output = [], chunks = [];
       // Line separators stay literal, including CRLF. Each line keeps its own layout outside edits.
-      for (const line of text.split(/(\r\n|\r|\n)/)) {
+      for (const line of source.split(/(\r\n|\r|\n)/)) {
         if (!line.trim()) { output.push(line); continue; }
         const plan = await planCorrection(line, value => this.runtime.count(value), this.info.inputLimit, () => 0, 0);
         for (const part of plan) {
@@ -285,10 +307,10 @@ export class LocalModel {
         }
       }
       const tokens = chunks.reduce((sum, part) => sum + part.textTokens, 0);
-      return { original: text, corrected: output.join(''), operation: 'correct', language: 'en', promptOverride: customPrompt,
+      return { original: text, corrected: output.join(''), operation: 'correct', language: 'en', promptOverride: customPrompt, spellingEnabled,
         seconds: (performance.now() - started) / 1000, usage: { prompt_tokens: tokens, completion_tokens: 0, total_tokens: tokens },
         budget: { context: this.info.context, safetyMargin: this.info.safetyMargin, chunks } };
-    } finally { this.busy = false; }
+    } finally { this.busy = false; if (!this.spellingEnabled) this.speller.reset(); }
   }
 
   async unload() {
@@ -296,6 +318,7 @@ export class LocalModel {
     this.busy = true;
     try {
       await this.tokenCountTask.catch(() => {});
+      this.speller.reset();
       const runtime = this.runtime;
       this.runtime = null;
       this.serverModel = null;

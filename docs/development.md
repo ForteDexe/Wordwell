@@ -39,6 +39,14 @@ alignment, edits, and encoder-only budgeting; `test:edit-browser` exercises a re
 bundle in a disposable Chrome profile. This mode does not replace existing GGUF
 or server workflows.
 
+`npm run test:spelling` builds and tests the opt-in English spelling component,
+including its packaged worker, local dictionaries, settings persistence, inline
+Replace, token budgeting, and translation bypass. It uses a disposable browser
+profile and fake loopback server; no model download is required. The pinned
+nspell runtime runs off the main thread. US/UK affix files must match before the
+build merges raw dictionary entries (avoiding successive-parser compound-rule
+regeneration). Licenses and affix/dictionary data ship together in `vendor/spelling`.
+
 ## Public source boundary
 
 Model training, dataset curation, exports and full research benchmarks are maintained

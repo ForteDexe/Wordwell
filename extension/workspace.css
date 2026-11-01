@@ -4,6 +4,7 @@ header, .brand, .model-title, .editor-heading, .model-controls, .actions { displ
 header, .model-title, .editor-heading { justify-content: space-between; } header { margin-bottom: 32px; flex-wrap: wrap; }
 .mark { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 15px; background: var(--wordwell-accent, #18594e); color: white; flex-shrink: 0; }
 .mark svg { width: 42px; height: 42px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.brand-version { display: inline-block; vertical-align: middle; margin-left: 4px; font-size: 12px; font-weight: 500; letter-spacing: 0; color: #647572; }
 h1 { margin: 0; font-size: 27px; letter-spacing: -.8px; } h2 { margin: 0; font-size: 18px; } p { margin: 8px 0; } header p { color: #647572; font-size: 14px; margin: 2px 0 0; }
 .badge { padding: 7px 12px; border: 1px solid #d4e0da; border-radius: 20px; background: #edf4ef; color: #416058; font-size: 12px; }
 .performance-tip { margin-bottom: 22px; padding: 14px 18px; border: 1px solid #cbded2; border-radius: 10px; background: #edf6f0; color: #385b4c; font-size: 14px; }
@@ -37,6 +38,8 @@ input::file-selector-button { border: 1px solid #ccd9d0; border-radius: 5px; pad
 .setting-row > label { margin: 0; padding-top: 9px; font-weight: 500; }
 .setting-row--toggle { align-items: center; }
 .setting-row--toggle > label { padding-top: 0; }
+#spelling-setting.unavailable { opacity: .5; filter: grayscale(1); }
+#spelling-setting input:disabled { cursor: not-allowed; }
 .setting-control { min-width: 0; }
 .page-translation-row { margin-top: 12px; }
 .settings-group[aria-labelledby="translation-settings-heading"] .setting-row:has(input:disabled, select:disabled) { opacity: .5; filter: grayscale(1); }

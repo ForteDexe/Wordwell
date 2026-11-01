@@ -40,6 +40,12 @@ test('a missing packaged worker is rejected', () => {
   const copy = { ...files }; delete copy['vendor/pthread-worker.js'];
   assert.throws(() => validatePackage(copy, version), /Missing package file/);
 });
+test('spelling worker, dictionary data, and original licenses are required together', () => {
+  for (const name of ['spelling-worker.js', 'vendor/spelling/en.dic', 'vendor/spelling/nspell-LICENSE.txt', 'vendor/spelling/dictionary-en-gb-LICENSE.txt']) {
+    const copy = { ...files }; delete copy[name];
+    assert.throws(() => validatePackage(copy, version), /Missing package file/);
+  }
+});
 test('version mismatches and changed permission/CSP declarations require review', () => {
   assert.throws(() => validatePackage(modifyManifest(m => { m.version = '99.0.0'; }), version), /manifest does not match/);
   assert.throws(() => validatePackage(modifyManifest(m => { m.permissions.push('history'); }), version), /changed release permissions/);

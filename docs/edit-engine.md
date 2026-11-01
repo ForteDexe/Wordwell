@@ -28,6 +28,14 @@ declare a limit supported by its actual ONNX model; editing metadata cannot exte
 the learned position table.
 There is no user-editable context setting in edit mode.
 
+**Settings → Correction → Spelling suggestions** optionally checks English
+words against a bundled US/British dictionary before the grammar model runs.
+It is off by default and works with all three engines. Only candidates with a
+clear ranking lead are suggested; valid-word errors and grammar remain the
+model's job. Names, code, and ambiguous typos may be left unchanged. Corrections
+still appear in the usual review/Replace flow. Dictionary work runs in a lazy
+local worker, released when you disable the setting. Translation bypasses it.
+
 WebGPU is preferred; WebAssembly runs on the CPU when WebGPU cannot load the
 model. The worker, tokenizer, JavaScript, and WASM are packaged locally. Model
 bundles contain data, hashes, tokenizer assets, a verb dictionary, and an ONNX

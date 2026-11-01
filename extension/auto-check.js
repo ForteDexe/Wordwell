@@ -20,7 +20,7 @@ export function createAutoChecker(api) {
   let enabled = true, settingsReady = false, active = null, pending = null, running = null;
   let timer = null, drawing = 0, stopped = false, composing = false;
   let targetLanguage = languages.defaultLanguage;
-  let customPrompt = '';
+  let customPrompt = '', spellingEnabled = false;
   let engineMode = 'browser', storedLanguage = targetLanguage, settingsVersion = 0;
   let underlinePressed = false;
   let inputs = 0, mutationsDetected = 0, lastChange = null, lastPump = 'not-started';
@@ -123,7 +123,7 @@ export function createAutoChecker(api) {
             if (response?.code !== 'superseded') record.error = response || { error: 'The model did not respond. Click to try again.' };
             break;
           }
-          if (response.result.language !== targetLanguage || response.result.promptOverride !== customPrompt) { schedule(record, 1000); return; }
+          if (response.result.language !== targetLanguage || response.result.promptOverride !== customPrompt || Boolean(response.result.spellingEnabled) !== spellingEnabled) { schedule(record, 1000); return; }
           corrected = response.result.corrected;
           record.cache.set(passage.text, corrected);
           if (record.cache.size > 40) record.cache.delete(record.cache.keys().next().value);
@@ -226,13 +226,14 @@ export function createAutoChecker(api) {
     } else if (active?.dirty && !composing) schedule(active);
     drawSoon();
   }
-  function setCorrectionSettings(value, prompt, mode) {
+  function setCorrectionSettings(value, prompt, mode, spelling) {
     storedLanguage = languages.normalize(value);
     const nextMode = mode || 'browser';
     const next = nextMode === 'edit' ? 'en' : storedLanguage;
     const nextPrompt = languages.normalizePrompt(prompt);
-    if (next === targetLanguage && nextPrompt === customPrompt && nextMode === engineMode) return;
-    targetLanguage = next; customPrompt = nextPrompt; engineMode = nextMode; settingsVersion++;
+    const nextSpelling = spelling === true;
+    if (next === targetLanguage && nextPrompt === customPrompt && nextMode === engineMode && nextSpelling === spellingEnabled) return;
+    targetLanguage = next; customPrompt = nextPrompt; engineMode = nextMode; spellingEnabled = nextSpelling; settingsVersion++;
     clearTimeout(timer); timer = null; pending = null; cancelQueued(); settingsChanged();
     if (active) {
       recordFor(active.target);
@@ -242,15 +243,16 @@ export function createAutoChecker(api) {
   }
   const settingsListener = (changes, area) => {
     if (area !== 'local') return;
-    if (changes.targetLanguage || changes.customPrompt || changes.engineMode) setCorrectionSettings(
+    if (changes.targetLanguage || changes.customPrompt || changes.engineMode || changes.spellingEnabled) setCorrectionSettings(
       changes.targetLanguage ? changes.targetLanguage.newValue : storedLanguage,
       changes.customPrompt ? changes.customPrompt.newValue : customPrompt,
-      changes.engineMode ? changes.engineMode.newValue : engineMode);
+      changes.engineMode ? changes.engineMode.newValue : engineMode,
+      changes.spellingEnabled ? changes.spellingEnabled.newValue : spellingEnabled);
     if (changes.autoCheck) setEnabled(changes.autoCheck.newValue);
   };
   chrome.storage.onChanged.addListener(settingsListener);
-  chrome.storage.local.get({ autoCheck: true, targetLanguage: languages.defaultLanguage, customPrompt: '', engineMode: 'browser' }).then(({ autoCheck, targetLanguage, customPrompt, engineMode }) => {
-    if (!stopped) { setCorrectionSettings(targetLanguage, customPrompt, engineMode); setEnabled(autoCheck); }
+  chrome.storage.local.get({ autoCheck: true, targetLanguage: languages.defaultLanguage, customPrompt: '', engineMode: 'browser', spellingEnabled: false }).then(({ autoCheck, targetLanguage, customPrompt, engineMode, spellingEnabled }) => {
+    if (!stopped) { setCorrectionSettings(targetLanguage, customPrompt, engineMode, spellingEnabled); setEnabled(autoCheck); }
   }).catch(() => { if (!stopped) setEnabled(false); });
   onEditorFocus(event => { if (outside(event)) activate(eventEditableTarget(event)); });
   on(window, 'input', input, { capture: true });
@@ -280,6 +282,7 @@ export function createAutoChecker(api) {
   return {
     language: () => targetLanguage,
     prompt: () => customPrompt,
+    spelling: () => spellingEnabled,
     refreshLayout: drawSoon,
     navigation(snapshot) {
       const { results, index } = navigationFor(snapshot);

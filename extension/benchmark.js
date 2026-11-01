@@ -49,16 +49,16 @@ export function createBenchmark({ model, canStart, onRunningChange }) {
     if (running || !cases || !canStart()) return;
     running = true; stopping = false;
     report = { suite: 'Wordwell English grammar smoke test', startedAt: new Date().toISOString(), completed: false, stopped: false,
-      model: structuredClone(model.info), language: 'en', prompt: model.engineMode === 'edit' ? null : languageTools.instruction('en'),
+      model: structuredClone(model.info), language: 'en', spellingEnabled: model.spellingEnabled, prompt: model.engineMode === 'edit' ? null : languageTools.instruction('en'),
       sampling: model.engineMode === 'edit' ? { maxIterations: 5 } : { temperature: 0, seed: 42 }, results: [],
       note: 'References are examples. Exact matches are not an accuracy score; different wording can be correct. Review outputs manually.' };
     $('benchmark-results').replaceChildren(); $('benchmark-table').hidden = false; $('benchmark-summary').hidden = false;
     $('benchmark-meta').hidden = false;
-    $('benchmark-meta').textContent = `${report.model.file} · ${report.model.backend} · ${report.model.context.toLocaleString()} context tokens · ${model.engineMode === 'edit' ? 'English edit predictions' : 'default English prompt'}`;
+    $('benchmark-meta').textContent = `${report.model.file} · ${report.model.backend} · ${report.model.context.toLocaleString()} context tokens · ${model.engineMode === 'edit' ? 'English edit predictions' : 'default English prompt'} · spelling ${report.spellingEnabled ? 'on' : 'off'}`;
     summarize(); onRunningChange(); refresh();
     try {
       for (const [index, test] of cases.entries()) {
-        if (stopping || !model.ready) break;
+        if (stopping || !model.ready || model.spellingEnabled !== report.spellingEnabled) break;
         $('benchmark-status').textContent = `Running ${index + 1}/${cases.length}: ${test.category}…`;
         let row;
         try {

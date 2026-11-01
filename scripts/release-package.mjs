@@ -30,7 +30,7 @@ export function validatePackage(files, version) {
   };
   for (const name of Object.keys(files)) {
     if (name.includes('\\') || name.startsWith('/') || name.split('/').some(part => !part || part.startsWith('.'))
-      || !/^[\w/.-]+$/.test(name) || (!/\.(js|mjs|css|html|json|png|svg|txt|wasm)$/i.test(name) && !/(^|\/)(LICENSE|NOTICE|LLAMA-LICENSE)$/.test(name))) {
+      || !/^[\w/.-]+$/.test(name) || (!/\.(js|mjs|css|html|json|png|svg|txt|wasm|aff|dic)$/i.test(name) && !/(^|\/)(LICENSE|NOTICE|LLAMA-LICENSE)$/.test(name))) {
       throw new Error(`Unexpected package path: ${name}`);
     }
   }
@@ -41,6 +41,10 @@ export function validatePackage(files, version) {
     'licenses/harper-LICENSE.txt', 'vendor/LICENSE', 'vendor/LLAMA-LICENSE', 'vendor/index.js',
     'vendor/main-worker.js', 'vendor/pthread-worker.js', 'vendor/opfs-worker.js', 'vendor/wasm/wllama.wasm']) requireFile(name);
   for (const name of ['edit-model.js', 'edit-model-worker.js', 'edit-model-core.js', 'edit-model-cache.js',
+    'spelling.js', 'spelling-worker.js', 'spelling-core.js', 'vendor/spelling/nspell.mjs',
+    'vendor/spelling/en.aff', 'vendor/spelling/en.dic',
+    'vendor/spelling/nspell-LICENSE.txt', 'vendor/spelling/is-buffer-LICENSE.txt',
+    'vendor/spelling/dictionary-en-LICENSE.txt', 'vendor/spelling/dictionary-en-gb-LICENSE.txt',
     'vendor/onnx/ort.webgpu.bundle.min.mjs', 'vendor/onnx/ort-wasm-simd-threaded.asyncify.mjs',
     'vendor/onnx/ort-wasm-simd-threaded.asyncify.wasm', 'vendor/onnx/LICENSE', 'vendor/onnx/ThirdPartyNotices.txt',
     'vendor/tokenizers/tokenizers.mjs', 'vendor/tokenizers/LICENSE']) requireFile(name);

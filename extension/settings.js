@@ -1,4 +1,6 @@
 // Shared by the workspace and bundled website selection tools.
+export const SPELLING_DEFAULTS = Object.freeze({ spellingEnabled: false });
+
 export const TRANSLATION_DEFAULTS = Object.freeze({
   translationEnabled: false,
   translationLanguage: 'zh-CN',

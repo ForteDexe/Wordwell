@@ -540,7 +540,7 @@
       if (snapshot.kind === 'plain' || snapshot.kind === 'page-control') snapshot.target.setSelectionRange(snapshot.start, snapshot.end);
       else restoreRange(snapshot.target, snapshot.range);
     }
-    const version = ++requestVersion, language = automatic.language(), promptOverride = automatic.prompt();
+    const version = ++requestVersion, language = automatic.language(), promptOverride = automatic.prompt(), spellingEnabled = automatic.spelling();
     if (snapshot.instant) {
       host.dataset.state = 'instant-translating'; panel.hidden = true; trigger.hidden = true;
       translationTrigger.hidden = false; translationTrigger.disabled = true; translationTrigger.setAttribute('aria-busy', 'true'); position();
@@ -550,7 +550,7 @@
       if (destroyed || version !== requestVersion) return;
       if (!valid(snapshot)) { hide(); return; }
       const matches = operation === 'translate' ? response?.result?.operation === 'translate' && response.result.language === snapshot.translationLanguage
-        : response?.result?.operation !== 'translate' && response?.result?.language === language && response.result.promptOverride === promptOverride;
+        : response?.result?.operation !== 'translate' && response?.result?.language === language && response.result.promptOverride === promptOverride && Boolean(response.result.spellingEnabled) === spellingEnabled;
       if (response?.result && !matches) {
         render('error', snapshot, { error: 'Correction settings changed. Please try again.' }); return;
       }

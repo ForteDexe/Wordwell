@@ -9,7 +9,7 @@
 </head>
 <body>
 <main>
-  <header><div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20l3-10L17 3l4 4-7 10-10 3Z"/><path d="m4 20 7-7m3-6 3 3"/><circle cx="12" cy="12" r="1.4"/></svg></span><div><h1>Wordwell</h1><p>Write clearly. Translate locally.</p></div></div><span id="context-badge" class="badge">Local model · 1,024 context tokens</span></header>
+  <header><div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20l3-10L17 3l4 4-7 10-10 3Z"/><path d="m4 20 7-7m3-6 3 3"/><circle cx="12" cy="12" r="1.4"/></svg></span><div><h1>Wordwell <span id="extension-version" class="brand-version"></span></h1><p>Write clearly. Translate locally.</p></div></div><span id="context-badge" class="badge">Local model · 1,024 context tokens</span></header>
   <aside class="performance-tip" aria-label="Tips">
     <strong>Tips</strong>
     <ul>
@@ -61,6 +61,10 @@
         <div class="setting-control">
           <select id="target-language"><option value="en">English</option></select>
         </div>
+      </div>
+      <div id="spelling-setting" class="setting-row setting-row--toggle">
+        <label for="spelling-enabled">Spelling suggestions</label>
+        <div class="checkbox-control"><input id="spelling-enabled" type="checkbox" aria-describedby="spelling-help"><span id="spelling-help" class="small muted">English · offline dictionary</span></div>
       </div>
       <details class="prompt-setting" id="prompt-settings">
         <summary><span>Correction prompt</span><span id="prompt-status" class="small muted" role="status"></span></summary>

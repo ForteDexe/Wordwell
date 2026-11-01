@@ -87,6 +87,13 @@ try {
   assert.equal(startEdit.corrected, 'The most important thing is honesty.', 'A high-confidence edit at the virtual sentence start must enable the correction');
   const startInline = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'inline-correct', text: 'Most important thing is honesty.' }));
   assert.equal(startInline.result.corrected, 'The most important thing is honesty.');
+  await page.locator('#spelling-enabled').check();
+  const spelling = await page.evaluate(() => window.localEnglish.model.correct('theriotically it is dead'));
+  assert.equal(spelling.original, 'theriotically it is dead');
+  assert.equal(spelling.corrected, 'Theoretically, it is dead.');
+  assert.equal(spelling.spellingEnabled, true);
+  await page.locator('#spelling-enabled').uncheck();
+  assert.equal(await page.evaluate(() => window.localEnglish.model.speller.worker === null), true);
   await page.locator('#auto-check').check();
   await page.locator('#original').fill('She go to school every day.');
   await page.locator('local-english-selection .auto-underline').first().waitFor({ state: 'visible' });
