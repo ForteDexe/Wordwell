@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import assert from 'node:assert/strict';
 
 export async function testWorkspaceSettings({ page, report }) {
@@ -64,9 +65,9 @@ export async function testWorkspaceSettings({ page, report }) {
   assert.match(await page.locator('#context-badge').innerText(), /1,536/);
   await page.waitForFunction(() => /^\d[\d,]* \/ 1,536 prompt tokens$/.test(document.getElementById('token-count').textContent));
   assert.deepEqual(await page.evaluate(async () => (await import('./model-cache.js')).savedModelInfo()), saved, 'Context reload must reuse the saved model without rewriting its copy');
-  await page.click('#correct');
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
-  const result = await page.evaluate(() => window.localEnglish.snapshot().result);
+  const result = await page.evaluate(() => window.workspaceCheck?.result);
   assert.equal(result.corrected, 'Yesterday I went to the shop and bought some milk.');
   assert.equal(result.budget.context, 1536);
   report.checks.push('Context changes stay pending until Apply, then reload the model and use the new context in token budgeting');

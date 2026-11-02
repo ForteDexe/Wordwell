@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import assert from 'node:assert/strict';
 
 export async function testCorrectionLanguages({ page, report }) {
@@ -19,10 +20,10 @@ export async function testCorrectionLanguages({ page, report }) {
   ]) {
     await choose(language);
     await page.locator('#original').fill(text);
-    await page.click('#correct');
+    await checkWorkspace(page);
     await page.waitForFunction(() => !window.localEnglish.model.busy);
     assert.equal(await page.locator('#error').isVisible(), false);
-    const snapshot = await page.evaluate(() => window.localEnglish.snapshot());
+    const snapshot = await page.evaluate(() => ({ ...window.localEnglish.snapshot(), result: window.workspaceCheck?.result }));
     assert.equal(snapshot.result.language, language);
     assert.equal(snapshot.info.instanceId, instance, 'Language changes must reuse the loaded model');
     const native = await page.evaluate(text => window.localEnglish.model.countTokens(text), text);
@@ -42,9 +43,9 @@ export async function testCorrectionLanguages({ page, report }) {
   // A language setting controls correction rather than translation.
   await choose('fr');
   await page.locator('#original').fill('I received your message yesterday.');
-  await page.click('#correct');
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
-  assert.equal(await page.locator('#corrected').inputValue(), 'I received your message yesterday.');
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), 'I received your message yesterday.');
   report.checks.push('A French correction request leaves English text unchanged rather than translating it');
 
   // A cached, unchanged sentence must be checked again after changing language.

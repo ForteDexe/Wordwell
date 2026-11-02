@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import { createServer } from 'node:http';
 import { mkdir, mkdtemp } from 'node:fs/promises';
 import path from 'node:path';
@@ -61,10 +62,25 @@ try {
 
   await page.locator('#original').fill('Yesterday I go to the shop.');
   await page.waitForFunction(() => /^\d[\d,]* \/ 1,024 prompt tokens$/.test(document.getElementById('token-count').textContent));
-  await page.locator('#correct').click();
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
-  assert.equal(await page.locator('#corrected').inputValue(), 'Yesterday I went to the shop.');
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), 'Yesterday I went to the shop.');
   assert.equal(await page.locator('#error').isHidden(), true);
+  assert.equal(await page.locator('#corrected, #copy, #result-meta, #correct, #clear').count(), 0);
+  const editorWidth = await page.locator('#original').evaluate(field => ({ field: field.getBoundingClientRect().width, container: field.closest('.editors').getBoundingClientRect().width }));
+  assert.ok(Math.abs(editorWidth.field - editorWidth.container) < 1, 'Original should use the full editor width');
+  const replace = page.locator('local-english-selection').getByRole('button', { name: 'Replace', exact: true });
+  await replace.waitFor({ state: 'visible' });
+  await replace.click();
+  assert.equal(await page.locator('#original').inputValue(), 'Yesterday I went to the shop.');
+  assert.equal(await replace.isVisible(), false);
+  await checkWorkspace(page);
+  await page.waitForFunction(() => !window.localEnglish.model.busy);
+  await replace.waitFor({ state: 'visible' });
+  assert.equal(await replace.isDisabled(), true, 'Unchanged manual results must disable Replace');
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.setViewportSize({ width: 1280, height: 1000 });
 
   const inline = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'inline-correct', text: 'Yesterday I go to the shop.' }));
   assert.equal(inline.result.corrected, 'Yesterday I went to the shop.');
@@ -89,7 +105,7 @@ try {
   await page.locator('#engine-mode').selectOption('browser');
   await page.waitForFunction(() => window.localEnglish.model.engineMode === 'browser' && !window.localEnglish.model.ready && !document.getElementById('browser-engine').hidden);
   assert.equal((await page.evaluate(() => chrome.storage.local.get('engineMode'))).engineMode, 'browser');
-  assert.ok(requests.template >= 3 && requests.tokenize >= 6 && requests.chat === 2);
+  assert.ok(requests.template >= 3 && requests.tokenize >= 6 && requests.chat === 3);
   console.log(`PASS: llama.cpp server mode connected, counted tokens, corrected workspace and inline text, reconnected, and switched back (${endpoint})`);
 } finally {
   await context?.close();

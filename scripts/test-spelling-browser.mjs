@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import { createServer } from 'node:http';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -70,13 +71,13 @@ try {
   }, original);
   assert.equal(timing.cold.corrected, 'theoretically it is dead');
   await page.locator('#original').fill(original);
-  await page.locator('#correct').click();
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
-  assert.equal(await page.locator('#corrected').inputValue(), 'theoretically it is dead');
-  assert.equal(await page.evaluate(() => window.localEnglish.snapshot().result.original), original);
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), 'theoretically it is dead');
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result.original), original);
   assert.equal(inputs.at(-1), 'theoretically it is dead');
   const preview = await page.evaluate(text => window.localEnglish.model.countTokens(text), original);
-  const result = await page.evaluate(() => window.localEnglish.snapshot().result);
+  const result = await page.evaluate(() => window.workspaceCheck?.result);
   assert.equal(preview.prompt_tokens, result.budget.chunks[0].promptTokens);
   assert.equal(result.spellingEnabled, true);
 

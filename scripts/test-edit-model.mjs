@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import { chromium } from 'playwright';
 import { openAsBlob } from 'node:fs';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -51,7 +52,7 @@ try {
   }
   await page.locator('#engine-mode').selectOption('edit');
   await page.waitForFunction(() => !window.localEnglish.snapshot().busy);
-  assert.equal(await page.locator('#engine-mode option:checked').innerText(), 'Edit model');
+  assert.equal(await page.locator('#engine-mode option:checked').innerText(), 'Grammar edit model');
   assert.equal(await page.evaluate(() => window.localEnglish.model.ready), false);
   if (process.env.MODEL_FILE_PATH) assert.equal(await page.evaluate(() => window.oldBrowserRuntime.isModelLoaded()), false);
   assert.equal(await page.locator('#target-language').inputValue(), 'en');
@@ -75,9 +76,9 @@ try {
   await page.locator('#original').fill('She go to school every day.');
   await page.waitForFunction(context => document.getElementById('token-count').textContent.endsWith(`/ ${context.toLocaleString()} input tokens`) && !document.getElementById('token-count').textContent.startsWith('…'), report.info.context);
   assert.ok((await page.locator('#token-count').getAttribute('title')).includes(report.info.inputLimit.toLocaleString()));
-  await page.locator('#correct').click();
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
-  assert.equal(await page.locator('#corrected').inputValue(), 'She goes to school every day.');
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), 'She goes to school every day.');
   assert.equal(await page.locator('#error').isHidden(), true);
   const response = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'inline-correct', text: 'She go to school every day.' }));
   assert.equal(response.result.corrected, 'She goes to school every day.');

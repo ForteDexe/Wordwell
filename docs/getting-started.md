@@ -16,7 +16,7 @@ Requirements: desktop Chrome 137 or newer, a compatible local model or llama.cpp
 
 ## Correction and translation
 
-For English correction, you can also choose **Edit model** in the Engine dropdown
+For English correction, you can also choose **Grammar edit model** in the Engine dropdown
 and load a local `.wwedit` bundle. It supports automatic underlines, selection
 refinement and replacement. Translation and custom prompts are available in the
 GGUF and server modes. See the [edit-model guide](edit-engine.md).

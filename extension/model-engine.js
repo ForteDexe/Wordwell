@@ -98,7 +98,7 @@ export class LocalModel {
   }
 
   async loadEdit(file) {
-    if (this.engineMode !== 'edit') throw new Error('Select Edit model before loading this bundle.');
+    if (this.engineMode !== 'edit') throw new Error('Select Grammar edit model before loading this bundle.');
     if (this.busy || this.runtime || this.ready) throw new Error('Unload the active model first.');
     if (!file?.name?.toLowerCase().endsWith('.wwedit')) throw new Error('Choose a Wordwell edit-model bundle (.wwedit).');
     this.busy = true;

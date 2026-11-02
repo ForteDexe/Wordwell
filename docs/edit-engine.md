@@ -1,10 +1,9 @@
 # English edit engine
 
-Select **Edit model** in the Engine dropdown, choose a local
+Select **Grammar edit model** in the Engine dropdown, choose a local
 `.wwedit` bundle, and click **Load model**. After loading, typing-pause checks,
 underlines, selected-text correction, Replace, and the built-in benchmark use
-that engine. Switch back to **Run model in Chrome** or **Connect to llama.cpp
-server** at any time. Existing installations keep their current engine choice.
+that engine. Switch back to **Browser LLM** or **Local LLM server** at any time. Existing installations keep their current engine choice.
 
 Only the selected engine is loaded. The previous browser model is unloaded and
 the edit worker is terminated when leaving this mode. Your GGUF file, edit
@@ -51,7 +50,7 @@ license and usage restrictions; inspect the provider's terms before use.
 Bundles contain an ONNX graph, tokenizer assets, edit labels and settings, a
 verb-form dictionary, and SHA-256 checksums. The loader accepts BERT/RoBERTa
 English edit models that implement this inference interface. A file extension
-alone does not guarantee compatibility. GGUF models use Run model in Chrome.
+alone does not guarantee compatibility. GGUF models use Browser LLM.
 Training datasets, teacher outputs and training/export scripts are not needed
 by this extension.
 

@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
@@ -5,11 +6,11 @@ export async function testBenchmark({ page, report }) {
   await page.bringToFront();
   assert.equal(await page.locator('#benchmark-panel').getAttribute('open'), null);
   await page.locator('#auto-check').uncheck();
-  await page.locator('#original').fill('He go to work every day.'); await page.locator('#correct').click();
+  await page.locator('#original').fill('He go to work every day.'); await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
   const before = await page.evaluate(() => window.localEnglish.snapshot());
-  assert.equal(await page.locator('#corrected').inputValue(), 'He goes to work every day.');
-  const original = await page.locator('#original').inputValue(), corrected = await page.locator('#corrected').inputValue();
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), 'He goes to work every day.');
+  const original = await page.locator('#original').inputValue(), corrected = await page.evaluate(() => window.workspaceCheck?.result?.corrected || '');
   await page.locator('#benchmark-panel > summary').click();
   await page.locator('#benchmark-run').click();
   await page.waitForFunction(() => window.localEnglish.benchmark.running);
@@ -20,8 +21,7 @@ export async function testBenchmark({ page, report }) {
   assert.equal(full.summary.controlsPreserved, 2); assert.ok(full.summary.medianSeconds > 0);
   assert.equal(full.model.instanceId, before.info.instanceId);
   assert.equal(await page.evaluate(() => window.localEnglish.model.loadCount), before.loadCount);
-  assert.equal(await page.locator('#original').inputValue(), original); assert.equal(await page.locator('#corrected').inputValue(), corrected);
-  assert.deepEqual(await page.evaluate(() => window.localEnglish.snapshot().result), before.result);
+  assert.equal(await page.locator('#original').inputValue(), original); assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), corrected);
   assert.equal(await page.locator('#benchmark-results tr').count(), 16);
   await page.locator('#benchmark-panel').evaluate(node => node.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'artifacts/benchmark.png' });
@@ -49,7 +49,7 @@ export async function testBenchmark({ page, report }) {
     await gate();
     try {
       await page.locator('#benchmark-run').click(); await page.waitForFunction(() => window.benchmarkGate.waiting);
-      for (const id of ['correct', 'unload', 'context-size', 'target-language', 'model-file', 'benchmark-run']) assert.equal(await page.locator(`#${id}`).isDisabled(), true);
+      for (const id of ['unload', 'context-size', 'target-language', 'model-file', 'benchmark-run']) assert.equal(await page.locator(`#${id}`).isDisabled(), true);
       const busy = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'inline-correct', text: 'They is late.' }));
       assert.equal(busy.code, 'engine-busy'); assert.match(busy.error, /benchmark/);
       await page.locator('#benchmark-stop').click(); assert.equal(await page.locator('#benchmark-stop').isDisabled(), true);

@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import { chromium } from 'playwright';
 import { mkdir, mkdtemp, writeFile, readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
@@ -137,10 +138,10 @@ try {
 
   async function correct(input) {
     await page.locator('#original').fill(input);
-    await page.click('#correct');
+    await checkWorkspace(page);
     await page.waitForFunction(() => !window.localEnglish.model.busy, undefined, { timeout: 120000 });
     assert.equal(await page.locator('#error').isVisible(), false);
-    const snapshot = await page.evaluate(() => window.localEnglish.snapshot());
+    const snapshot = await page.evaluate(() => ({ ...window.localEnglish.snapshot(), result: window.workspaceCheck?.result }));
     assert.ok(snapshot.result?.corrected);
     assert.equal(snapshot.info.instanceId, loaded.info.instanceId);
     assert.equal(snapshot.loadCount, 1);
@@ -184,7 +185,7 @@ try {
   await page.screenshot({ path: 'artifacts/workspace-inline-suggestion.png', fullPage: true });
   await page.getByRole('button', { name: 'Replace', exact: true }).click();
   assert.equal(await page.locator('#original').inputValue(), report.first.corrected);
-  assert.equal(await page.locator('#corrected').inputValue(), '', 'Replacing the original must invalidate the old workspace result');
+  assert.equal(await page.locator('local-english-selection .panel').isVisible(), false, 'Replacing the original must close its suggestion');
   report.checks.push('Workspace inline Replace updates Original and triggers its input handler without reloading the model');
 
   // Exercise the shared handler registered for the selection context menu.
@@ -204,23 +205,21 @@ try {
 
   report.control = await correct('I received your message yesterday.');
   assert.equal(report.control.corrected, report.control.original);
-  assert.match(await page.locator('#status').innerText(), /No changes suggested/);
+  assert.match(await page.locator('local-english-selection .heading').innerText(), /No changes suggested/);
   report.checks.push('Correct sentence unchanged; no claim of perfect grammar');
-  await page.click('#copy');
-  await page.waitForFunction(() => document.getElementById('status').textContent.includes('copied') || !document.getElementById('error').hidden);
-  assert.match(await page.locator('#status').innerText(), /copied/);
-  report.checks.push('Copy correction succeeds');
+  assert.equal(await page.locator('local-english-selection').getByRole('button', { name: 'Replace', exact: true }).isDisabled(), true);
+  report.checks.push('Selection checking shows the inline review popup and disables Replace when the text is unchanged');
 
   // A huge indivisible passage is rejected without exposing a partial result.
   await page.locator('#original').evaluate(element => { element.value = 'word '.repeat(1500); element.dispatchEvent(new Event('input', { bubbles: true })); });
-  await page.click('#correct');
+  await checkWorkspace(page);
   await page.waitForFunction(() => !document.getElementById('error').hidden);
   assert.match(await page.locator('#error').innerText(), /shorter/);
-  assert.equal(await page.locator('#corrected').inputValue(), '');
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), '');
   report.checks.push('Long passage rejected; stale suggestion cleared');
 
   await page.locator('#original').fill('Yesterday I go to the shop and buy some milk.');
-  await page.click('#correct');
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy, undefined, { timeout: 120000 });
   await page.screenshot({ path: 'artifacts/extension-workspace.png', fullPage: true });
   report.beforeUnload = await page.evaluate(() => window.localEnglish.snapshot());
@@ -444,8 +443,8 @@ try {
   await page.click('#unload');
   await page.waitForFunction(() => !window.localEnglish.model.busy);
   assert.equal(await page.evaluate(() => window.localEnglish.model.ready), false);
-  assert.equal(await page.locator('#correct').isEnabled(), false);
-  report.checks.push('Unload releases model and disables correction');
+  assert.equal(await page.locator('#original').isEditable(), true);
+  report.checks.push('Unload releases the model while the test box stays editable like a website field');
 
   const remembered = await page.evaluate(async () => (await import('./model-cache.js')).savedModelInfo());
   assert.equal(remembered.name, path.basename(modelPath));
@@ -482,9 +481,9 @@ try {
   report.checks.push('Saved model autoloads in one workspace after a full browser restart');
   await page.bringToFront();
   await page.locator('#original').fill('He go to work every day.');
-  await page.click('#correct');
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
-  assert.equal(await page.locator('#corrected').inputValue(), 'He goes to work every day.');
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), 'He goes to work every day.');
   report.checks.push('Autoloaded model performs a real correction after restart');
   await page.screenshot({ path: 'artifacts/remembered-model.png', fullPage: true });
 

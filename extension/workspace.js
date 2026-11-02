@@ -26,7 +26,6 @@ for (const id of ['target-language', 'translation-language', 'page-translation-l
     const option = document.createElement('option'); option.value = language.code; option.textContent = language.label; return option;
   }));
 }
-let result = null;
 let pendingSelection = null;
 let lastSelectionId = null;
 let inlineBusy = false;
@@ -127,10 +126,7 @@ function refresh() {
     ? `${model.info.model} · ${model.info.context.toLocaleString()} context tokens · ${model.info.endpoint}`
     : 'Not connected.';
   $('setup-privacy').hidden = model.ready || Boolean(remembered);
-  $('correct').disabled = busy || !model.ready || !$('original').value.trim();
   $('original').disabled = busy && !inlineBusy;
-  $('clear').disabled = busy;
-  $('copy').disabled = busy || !result;
   $('use-selection').hidden = !pendingSelection;
   $('use-selection').disabled = busy;
   $('count').textContent = `${$('original').value.length.toLocaleString()} / 50,000 characters`;
@@ -161,35 +157,32 @@ function refresh() {
   $('context-help').textContent = pendingContext
     ? `Currently using ${model.info.context.toLocaleString()} tokens. Apply and reload the model to use ${contextSize.toLocaleString()}.`
     : 'Shared by instructions, your text, and the correction. Larger contexts use more memory. Values round up to blocks of 256 tokens.';
-  $('context-badge').textContent = editMode ? `Edit model · English${model.info ? ` · ${model.info.context.toLocaleString()} input tokens` : ''}` : serverMode
-    ? `llama.cpp server · ${(model.info?.context ?? '—').toLocaleString?.() ?? '—'} context tokens`
-    : `Browser model · ${(model.info?.context ?? contextSize).toLocaleString()} context tokens`;
+  $('context-badge').textContent = editMode ? `Grammar edit model · English${model.info ? ` · ${model.info.context.toLocaleString()} input tokens` : ''}` : serverMode
+    ? `Local LLM server · ${(model.info?.context ?? '—').toLocaleString?.() ?? '—'} context tokens`
+    : `Browser LLM · ${(model.info?.context ?? contextSize).toLocaleString()} context tokens`;
   refreshTokenCount();
   $('model-state').textContent = busy ? 'Working…' : model.ready ? 'Ready' : 'Not loaded';
   $('model-state').classList.toggle('ready', model.ready && !busy);
   $('diagnostics').textContent = JSON.stringify({ ...model.info, engineMode, loadCount: model.loadCount, contextRequested: browserMode ? contextSize : undefined, targetLanguage: model.targetLanguage, isolated: crossOriginIsolated }, null, 2);
   benchmark?.refresh();
 }
-function clearResult() { result = null; $('corrected').value = ''; $('result-meta').textContent = 'Review the suggestion before using it.'; }
 function setLanguage(value) {
   preferredLanguage = languageTools.normalize(value);
-  const language = engineMode === 'edit' ? 'en' : preferredLanguage;
-  if (model.targetLanguage !== language) { model.targetLanguage = language; clearResult(); }
+  model.targetLanguage = engineMode === 'edit' ? 'en' : preferredLanguage;
 }
 function setPrompt(value) {
-  const prompt = languageTools.normalizePrompt(value);
-  if (model.customPrompt !== prompt) { model.customPrompt = prompt; clearResult(); }
+  model.customPrompt = languageTools.normalizePrompt(value);
 }
 function setSpelling(value) {
   const enabled = value === true;
-  if (model.spellingEnabled !== enabled) { model.setSpellingEnabled(enabled); clearResult(); }
+  if (model.spellingEnabled !== enabled) { model.setSpellingEnabled(enabled); }
 }
 function useSelection(selection) {
   if (!selection || selection.id === lastSelectionId) return;
   if (model.busy || benchmark?.running) { pendingSelection = selection; refresh(); return; }
   lastSelectionId = selection.id; pendingSelection = null;
   $('original').value = selection.text;
-  clearResult(); clearError();
+  clearError();
   status(model.ready ? 'Selected text is ready to check.' : 'Selected text received. Connect or load a model to check it.');
   refresh();
   chrome.storage.session.remove('selection').catch(() => {});
@@ -327,7 +320,7 @@ $('engine-mode').addEventListener('change', async () => {
     await setKeepLoaded(false);
     model.setMode(next);
     engineMode = next;
-    setLanguage(preferredLanguage); clearResult();
+    setLanguage(preferredLanguage);
     await chrome.storage.local.set({ engineMode });
     await setModelState('unloaded', '', workspaceTabId);
   } catch (error) {
@@ -459,29 +452,7 @@ $('forget').addEventListener('click', async () => {
   } catch (error) { showError(error); }
   finally { fileOperation = false; refresh(); }
 });
-$('original').addEventListener('input', () => { clearResult(); clearError(); refresh(); });
-$('correct').addEventListener('click', async () => {
-  clearError(); clearResult(); status('Checking your text…');
-  const checking = model.correct($('original').value); refresh();
-  try {
-    const correction = await checking;
-    if (correction.language !== model.targetLanguage || correction.promptOverride !== model.customPrompt || Boolean(correction.spellingEnabled) !== model.spellingEnabled) { status('Correction settings changed. Check your text again.'); return; }
-    result = correction;
-    await setModelState('ready', '', workspaceTabId);
-    $('corrected').value = result.corrected;
-    const unchanged = result.original.trim() === result.corrected.trim();
-    const elapsed = result.seconds < 1 ? `${Math.round(result.seconds * 1000)} ms` : `${result.seconds.toFixed(1)} seconds`;
-    $('result-meta').textContent = `${elapsed} · ${unchanged ? 'No changes suggested' : 'Suggestion ready'}`;
-    status(unchanged ? 'No changes suggested. The model may still miss errors.' : 'Review the correction, then copy it when you are ready.');
-  } catch (error) { showError(error); status('Could not finish this check. Try a shorter passage.'); }
-  finally { refresh(); }
-});
-$('copy').addEventListener('click', async () => {
-  if (!result) return;
-  try { await navigator.clipboard.writeText(result.corrected); status('Correction copied. Paste it where you want to use it.'); }
-  catch (error) { showError(error); }
-});
-$('clear').addEventListener('click', () => { $('original').value = ''; clearResult(); clearError(); status('Text cleared.'); refresh(); });
+$('original').addEventListener('input', () => { clearError(); refresh(); });
 $('use-selection').addEventListener('click', () => useSelection(pendingSelection));
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'session' && changes.editorDiagnostics) showEditorDiagnostics(changes.editorDiagnostics.newValue || []);
@@ -565,6 +536,6 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
 
 // First-party diagnostics used by the reproducible browser test.
 benchmark = createBenchmark({ model, canStart: () => initialized && model.ready && !model.busy && !fileOperation && !settingsSaving && !inlineBusy, onRunningChange: refresh });
-window.localEnglish = { model, get initialized() { return initialized; }, get benchmark() { return benchmark.snapshot(); }, snapshot: () => ({ info: model.info, loadCount: model.loadCount, checkCount: model.checkCount, ready: model.ready, busy: model.busy || benchmark.running || fileOperation, initialized, remembered, result, logs: model.logs }) };
+window.localEnglish = { model, get initialized() { return initialized; }, get benchmark() { return benchmark.snapshot(); }, snapshot: () => ({ info: model.info, loadCount: model.loadCount, checkCount: model.checkCount, ready: model.ready, busy: model.busy || benchmark.running || fileOperation, initialized, remembered, logs: model.logs }) };
 refresh();
 restoreRememberedModel();

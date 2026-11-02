@@ -1,3 +1,4 @@
+import { checkWorkspace } from './workspace-check.mjs';
 import assert from 'node:assert/strict';
 
 export async function testPromptSettings({ page, report }) {
@@ -24,10 +25,10 @@ export async function testPromptSettings({ page, report }) {
   }
   async function check(text) {
     await page.locator('#original').fill(text);
-    await page.click('#correct');
+    await checkWorkspace(page);
     await page.waitForFunction(() => !window.localEnglish.model.busy);
     assert.equal(await page.locator('#error').isVisible(), false);
-    return page.evaluate(() => window.localEnglish.snapshot().result);
+    return page.evaluate(() => window.workspaceCheck?.result);
   }
   // The settings prompt is deliberately excluded from grammar/selection UI.
   await page.locator('#auto-check').check();
@@ -89,10 +90,10 @@ export async function testPromptSettings({ page, report }) {
 
   await save('word '.repeat(1800).trim());
   await page.locator('#original').fill('He go to work every day.');
-  await page.click('#correct');
+  await checkWorkspace(page);
   await page.waitForFunction(() => !window.localEnglish.model.busy);
   assert.match(await page.locator('#error').innerText(), /prompt leaves too little context/);
-  assert.equal(await page.locator('#corrected').inputValue(), '');
+  assert.equal(await page.evaluate(() => window.workspaceCheck?.result?.corrected || ''), '');
   await page.locator('#target-language').selectOption('en');
   await page.waitForFunction(() => window.localEnglish.model.targetLanguage === 'en' && !document.getElementById('target-language').disabled);
   await save('');

@@ -64,7 +64,7 @@ All executable JS, workers, and WASM are included in the package. The external d
 6. Enable Page selection translation and choose a target language. Select ordinary webpage text; the icon appears after mouse release. Translate and Copy. The page text stays unchanged.
 7. Close and restart Chrome. The cached model should autoload in one background workspace. Keep that workspace open while writing.
 8. Use Forget model to delete the saved copy, then Unload to release the current engine. It should not autoload on the next restart.
-9. Optional server mode: run a compatible `llama-server` on localhost with CORS enabled for Chrome extension origins, choose **Connect to llama.cpp server**, enter its loopback URL, and connect. Wordwell should show the server model/context and reconnect after a workspace reload. This mode is not required to review the default workflow.
+9. Optional server mode: run a compatible `llama-server` on localhost with CORS enabled for Chrome extension origins, choose **Local LLM server**, enter its loopback URL, and connect. Wordwell should show the server model/context and reconnect after a workspace reload. This mode is not required to review the default workflow.
 
 If automatic checking is unwanted, turn it off in Settings; manual checks remain available. The optional Windows GPU tip changes a browser-wide setting and is not required for correctness or installation.
 
