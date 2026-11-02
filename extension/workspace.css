@@ -8,6 +8,11 @@ header, .model-title, .editor-heading { justify-content: space-between; } header
 h1 { margin: 0; font-size: 27px; letter-spacing: -.8px; } h2 { margin: 0; font-size: 18px; } p { margin: 8px 0; } header p { color: #647572; font-size: 14px; margin: 2px 0 0; }
 .badge { padding: 7px 12px; border: 1px solid #d4e0da; border-radius: 20px; background: #edf4ef; color: #416058; font-size: 12px; }
 .performance-tip { margin-bottom: 22px; padding: 14px 18px; border: 1px solid #cbded2; border-radius: 10px; background: #edf6f0; color: #385b4c; font-size: 14px; }
+.performance-tip summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; font-weight: 600; list-style: none; }
+.performance-tip summary::-webkit-details-marker { display: none; }
+.performance-tip summary::after { content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin: 0 4px 3px 0; }
+.performance-tip[open] summary::after { transform: rotate(225deg); margin-top: 6px; }
+.performance-tip summary:focus-visible { outline: 2px solid #409076; outline-offset: 3px; border-radius: 3px; }
 .performance-tip p { margin: 4px 0 0; }
 .performance-tip ul { margin: 6px 0 0; padding-left: 20px; }
 .performance-tip li + li { margin-top: 6px; }
